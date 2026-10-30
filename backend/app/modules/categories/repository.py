@@ -133,10 +133,13 @@ class CategoryRepository:
                 )
             )
 
-        # Filter product count only to published items
+        # Filter product count only to published and active items
         published_product_subq = (
             select(Product.category_id, func.count(Product.id).label("published_count"))
-            .where(Product.status == "published")
+            .where(
+                Product.status == "published",
+                Product.is_active == True,  # noqa: E712
+            )
             .group_by(Product.category_id)
             .subquery()
         )

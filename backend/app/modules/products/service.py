@@ -1,6 +1,7 @@
 import math
 import uuid
 
+from fastapi import UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import BadRequestException, ConflictException, NotFoundException
@@ -17,16 +18,24 @@ from app.modules.products.schemas import (
     ProductResponse,
     ProductUpdate,
 )
+from app.services.cloudinary_service import CloudinaryService, get_cloudinary_service
 from app.utils.slug import generate_slug
 
 
 class ProductService:
     """Service encapsulating product business rules, validation, and lifecycle management."""
 
-    def __init__(self, db: AsyncSession) -> None:
+    MAX_IMAGES_PER_PRODUCT = 5
+
+    def __init__(
+        self,
+        db: AsyncSession,
+        cloudinary_service: CloudinaryService | None = None,
+    ) -> None:
         self.db = db
         self.repository = ProductRepository(db)
         self.category_repo = CategoryRepository(db)
+        self.cloudinary = cloudinary_service or get_cloudinary_service()
 
     def _serialize_product(self, product: Product) -> ProductResponse:
         """Convert Product ORM instance to ProductResponse schema."""
@@ -42,6 +51,7 @@ class ProductService:
             ProductImageResponse(
                 id=img.id,
                 image_url=img.storage_path,
+                public_id=img.public_id,
                 alt_text=img.alt_text,
                 display_order=img.display_order,
                 is_primary=img.is_primary,
@@ -66,6 +76,8 @@ class ProductService:
             attributes=product.attributes or {},
             status=product.status,
             is_published=product.is_published,
+            is_active=product.is_active,
+            video_url=product.video_url,
             primary_image=primary_image,
             images=image_responses,
             created_at=product.created_at,
@@ -86,6 +98,7 @@ class ProductService:
             ProductImageResponse(
                 id=img.id,
                 image_url=img.storage_path,
+                public_id=img.public_id,
                 alt_text=img.alt_text,
                 display_order=img.display_order,
                 is_primary=img.is_primary,
@@ -105,6 +118,7 @@ class ProductService:
             category=category_summary,
             tags=product.tags or [],
             attributes=product.attributes or {},
+            video_url=product.video_url,
             primary_image=primary_image,
             images=image_responses,
             created_at=product.created_at,
@@ -112,7 +126,13 @@ class ProductService:
 
     async def create_product(self, payload: ProductCreate) -> ProductResponse:
         """Create new jewellery product with SKU, slug, category, and lifecycle validation."""
-        # 1. Resolve and validate slug
+        # 1. Enforce max 5 images limit
+        if len(payload.images) > self.MAX_IMAGES_PER_PRODUCT:
+            raise BadRequestException(
+                f"A product can hold a maximum of {self.MAX_IMAGES_PER_PRODUCT} images."
+            )
+
+        # 2. Resolve and validate slug
         resolved_slug = payload.slug.strip() if payload.slug else generate_slug(payload.title)
         if not resolved_slug:
             resolved_slug = generate_slug(payload.title)
@@ -124,7 +144,7 @@ class ProductService:
         if existing_by_slug:
             raise ConflictException(f"Product with slug '{resolved_slug}' already exists")
 
-        # 2. Resolve and validate SKU
+        # 3. Resolve and validate SKU
         resolved_sku = payload.sku.strip() if payload.sku else None
         if not resolved_sku:
             prefix = resolved_slug[:6].replace("-", "").upper()
@@ -134,7 +154,7 @@ class ProductService:
         if existing_by_sku:
             raise ConflictException(f"Product with SKU '{resolved_sku}' already exists")
 
-        # 3. Validate category association
+        # 4. Validate category association
         if payload.category_id:
             cat_tuple = await self.category_repo.get_by_id(payload.category_id)
             if not cat_tuple:
@@ -147,11 +167,11 @@ class ProductService:
                     "Cannot assign product to an inactive category. The category must be active."
                 )
 
-        # 4. Clean tags and keywords
+        # 5. Clean tags and keywords
         cleaned_tags = list(dict.fromkeys(t.strip() for t in payload.tags if t.strip()))
         cleaned_keywords = list(dict.fromkeys(k.strip() for k in payload.keywords if k.strip()))
 
-        # 5. Build entity
+        # 6. Build entity
         is_published = payload.status == ProductStatus.PUBLISHED
         product = Product(
             sku=resolved_sku,
@@ -164,12 +184,15 @@ class ProductService:
             attributes=payload.attributes or {},
             status=payload.status,
             is_published=is_published,
+            is_active=payload.is_active,
+            video_url=payload.video_url.strip() if payload.video_url else None,
         )
 
-        # 6. Associate images if provided
+        # 7. Associate images (max 5)
         for idx, img_in in enumerate(payload.images):
             image = ProductImage(
                 storage_path=img_in.image_url.strip(),
+                public_id=img_in.public_id.strip() if img_in.public_id else None,
                 alt_text=img_in.alt_text.strip() if img_in.alt_text else None,
                 display_order=img_in.display_order if img_in.display_order is not None else idx,
                 is_primary=img_in.is_primary,
@@ -177,7 +200,6 @@ class ProductService:
             product.images.append(image)
 
         created = await self.repository.create(product)
-        # Reload with relationships
         full_product = await self.repository.get_by_id(created.id)
         return self._serialize_product(full_product or created)
 
@@ -231,6 +253,21 @@ class ProductService:
                     )
                 product.category_id = payload.category_id
 
+        # Update active flag
+        if payload.is_active is not None:
+            if payload.is_active and product.category_id:
+                cat_tuple = await self.category_repo.get_by_id(product.category_id)
+                if cat_tuple and not cat_tuple[0].is_active:
+                    raise BadRequestException(
+                        "Cannot activate product belonging to an inactive category. "
+                        "Activate the category first."
+                    )
+            product.is_active = payload.is_active
+
+        # Update video_url
+        if payload.video_url is not None:
+            product.video_url = payload.video_url.strip() if payload.video_url.strip() else None
+
         if payload.description is not None:
             product.description = (
                 payload.description.strip() if payload.description.strip() else None
@@ -247,10 +284,15 @@ class ProductService:
 
         # Update images if passed explicitly
         if payload.images is not None:
+            if len(payload.images) > self.MAX_IMAGES_PER_PRODUCT:
+                raise BadRequestException(
+                    f"A product can hold a maximum of {self.MAX_IMAGES_PER_PRODUCT} images."
+                )
             product.images.clear()
             for idx, img_in in enumerate(payload.images):
                 image = ProductImage(
                     storage_path=img_in.image_url.strip(),
+                    public_id=img_in.public_id.strip() if img_in.public_id else None,
                     alt_text=img_in.alt_text.strip() if img_in.alt_text else None,
                     display_order=img_in.display_order if img_in.display_order is not None else idx,
                     is_primary=img_in.is_primary,
@@ -285,11 +327,134 @@ class ProductService:
         full_product = await self.repository.get_by_id(updated.id)
         return self._serialize_product(full_product or updated)
 
+    async def toggle_product_active(
+        self, product_id: uuid.UUID, is_active: bool
+    ) -> ProductResponse:
+        """Explicitly toggle product active/inactive state."""
+        product = await self.repository.get_by_id(product_id)
+        if not product:
+            raise NotFoundException(f"Product with ID '{product_id}' not found")
+
+        if is_active and product.category_id:
+            cat_tuple = await self.category_repo.get_by_id(product.category_id)
+            if cat_tuple and not cat_tuple[0].is_active:
+                raise BadRequestException(
+                    "Cannot activate product belonging to an inactive category. "
+                    "Activate the category first."
+                )
+
+        product.is_active = is_active
+        updated = await self.repository.update(product)
+        full_product = await self.repository.get_by_id(updated.id)
+        return self._serialize_product(full_product or updated)
+
+    async def upload_product_image(
+        self,
+        product_id: uuid.UUID,
+        file: UploadFile,
+        is_primary: bool = False,
+        alt_text: str | None = None,
+    ) -> ProductResponse:
+        """Upload an image to Cloudinary and attach to product (max 5 images enforced)."""
+        product = await self.repository.get_by_id(product_id)
+        if not product:
+            raise NotFoundException(f"Product with ID '{product_id}' not found")
+
+        if len(product.images) >= self.MAX_IMAGES_PER_PRODUCT:
+            raise BadRequestException(
+                f"A product can hold a maximum of {self.MAX_IMAGES_PER_PRODUCT} images. "
+                "Please delete an existing image before uploading a new one."
+            )
+
+        # Upload to Cloudinary
+        upload_res = await self.cloudinary.upload_image(file)
+
+        # If marking this image primary, clear other primary flags
+        if is_primary:
+            for img in product.images:
+                img.is_primary = False
+        elif len(product.images) == 0:
+            is_primary = True
+
+        new_image = ProductImage(
+            product_id=product.id,
+            storage_path=upload_res["url"],
+            public_id=upload_res.get("public_id"),
+            alt_text=alt_text.strip() if alt_text else None,
+            display_order=len(product.images),
+            is_primary=is_primary,
+        )
+        product.images.append(new_image)
+
+        updated = await self.repository.update(product)
+        full_product = await self.repository.get_by_id(updated.id)
+        return self._serialize_product(full_product or updated)
+
+    async def delete_product_image(
+        self, product_id: uuid.UUID, image_id: uuid.UUID
+    ) -> ProductResponse:
+        """Remove a product image from the database and Cloudinary."""
+        product = await self.repository.get_by_id(product_id)
+        if not product:
+            raise NotFoundException(f"Product with ID '{product_id}' not found")
+
+        target_img = next((img for img in product.images if img.id == image_id), None)
+        if not target_img:
+            raise NotFoundException(f"Image with ID '{image_id}' not found on this product")
+
+        # Cleanup from Cloudinary
+        if target_img.public_id:
+            await self.cloudinary.delete_asset(target_img.public_id, resource_type="image")
+
+        was_primary = target_img.is_primary
+        product.images.remove(target_img)
+
+        # Re-assign primary if necessary
+        if was_primary and product.images:
+            product.images[0].is_primary = True
+
+        updated = await self.repository.update(product)
+        full_product = await self.repository.get_by_id(updated.id)
+        return self._serialize_product(full_product or updated)
+
+    async def upload_product_video(
+        self, product_id: uuid.UUID, file: UploadFile
+    ) -> ProductResponse:
+        """Upload product video to Cloudinary (maximum 1 video per product)."""
+        product = await self.repository.get_by_id(product_id)
+        if not product:
+            raise NotFoundException(f"Product with ID '{product_id}' not found")
+
+        # Upload video to Cloudinary
+        upload_res = await self.cloudinary.upload_video(file)
+        product.video_url = upload_res["url"]
+
+        updated = await self.repository.update(product)
+        full_product = await self.repository.get_by_id(updated.id)
+        return self._serialize_product(full_product or updated)
+
+    async def delete_product_video(self, product_id: uuid.UUID) -> ProductResponse:
+        """Remove product video."""
+        product = await self.repository.get_by_id(product_id)
+        if not product:
+            raise NotFoundException(f"Product with ID '{product_id}' not found")
+
+        product.video_url = None
+        updated = await self.repository.update(product)
+        full_product = await self.repository.get_by_id(updated.id)
+        return self._serialize_product(full_product or updated)
+
     async def delete_product(self, product_id: uuid.UUID) -> None:
         """Delete product and all associated images."""
         product = await self.repository.get_by_id(product_id)
         if not product:
             raise NotFoundException(f"Product with ID '{product_id}' not found")
+
+        # Cleanup Cloudinary images
+        for img in product.images:
+            if img.public_id:
+                await self.cloudinary.delete_asset(img.public_id, resource_type="image")
+
         await self.repository.delete(product)
 
     async def list_admin_products(
@@ -299,6 +464,7 @@ class ProductService:
         search: str | None = None,
         category_id: uuid.UUID | None = None,
         status: ProductStatus | None = None,
+        is_active: bool | None = None,
         sort_by: str = "created_at",
         sort_order: str = "desc",
     ) -> ProductListResponse:
@@ -312,6 +478,7 @@ class ProductService:
             search=search,
             category_id=category_id,
             status=status,
+            is_active=is_active,
             sort_by=sort_by,
             sort_order=sort_order,
         )
@@ -337,7 +504,7 @@ class ProductService:
         sort_by: str = "created_at",
         sort_order: str = "desc",
     ) -> ProductPublicListResponse:
-        """Retrieve public catalogue listing containing strictly published items."""
+        """Retrieve public catalogue listing containing strictly published and active items."""
         page = max(1, page)
         limit = min(max(1, limit), 100)
 
@@ -362,9 +529,12 @@ class ProductService:
         )
 
     async def get_public_product_by_slug(self, slug: str) -> ProductPublicResponse:
-        """Retrieve public product by slug. Rejects draft, archived, or inactive categories."""
+        """Retrieve public product by slug.
+
+        Rejects draft, archived, inactive products, or products under inactive categories.
+        """
         product = await self.repository.get_by_slug(slug.strip())
-        if not product or product.status != ProductStatus.PUBLISHED:
+        if not product or product.status != ProductStatus.PUBLISHED or not product.is_active:
             raise NotFoundException(f"Product '{slug}' not found")
 
         # If product belongs to an inactive category, hide it from public storefront

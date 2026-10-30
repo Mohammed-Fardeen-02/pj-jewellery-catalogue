@@ -27,6 +27,7 @@ class ProductImageCreate(BaseModel):
     """Product image creation schema."""
 
     image_url: str = Field(..., description="External storage URL or relative asset path")
+    public_id: str | None = Field(default=None, max_length=255, description="Cloudinary public ID")
     alt_text: str | None = Field(default=None, max_length=255, description="Accessibility alt text")
     display_order: int = Field(default=0, ge=0, description="Display ordering index")
     is_primary: bool = Field(default=False, description="Whether this is the primary hero image")
@@ -37,11 +38,21 @@ class ProductImageResponse(BaseModel):
 
     id: uuid.UUID
     image_url: str
+    public_id: str | None = None
     alt_text: str | None = None
     display_order: int = 0
     is_primary: bool = False
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class ProductMediaUploadResponse(BaseModel):
+    """Result of uploading a media file (image or video) to Cloudinary."""
+
+    url: str
+    public_id: str | None = None
+    resource_type: str = "image"
+    message: str = "Media uploaded successfully"
 
 
 class ProductCategorySummary(BaseModel):
@@ -81,8 +92,14 @@ class ProductCreate(BaseModel):
     status: ProductStatus = Field(
         default=ProductStatus.DRAFT, description="Initial lifecycle status"
     )
+    is_active: bool = Field(default=True, description="Active status for catalogue display")
+    video_url: str | None = Field(
+        default=None, max_length=512, description="Cloudinary video URL (max 1 video)"
+    )
     images: list[ProductImageCreate] = Field(
-        default_factory=list, description="Associated image references"
+        default_factory=list,
+        max_length=5,
+        description="Associated image references (maximum 5 images allowed)",
     )
 
 
@@ -97,13 +114,21 @@ class ProductUpdate(BaseModel):
     tags: list[str] | None = None
     keywords: list[str] | None = None
     attributes: dict[str, Any] | None = None
-    images: list[ProductImageCreate] | None = None
+    is_active: bool | None = None
+    video_url: str | None = Field(default=None, max_length=512)
+    images: list[ProductImageCreate] | None = Field(default=None, max_length=5)
 
 
 class ProductStatusUpdate(BaseModel):
     """Explicit product status transition payload."""
 
     status: ProductStatus = Field(..., description="Target status: draft, published, or archived")
+
+
+class ProductActiveUpdate(BaseModel):
+    """Explicit product active/inactive toggle payload."""
+
+    is_active: bool = Field(..., description="True to activate, False to deactivate")
 
 
 class ProductStatusCounts(BaseModel):
@@ -130,6 +155,8 @@ class ProductResponse(BaseModel):
     attributes: dict[str, Any] = Field(default_factory=dict)
     status: ProductStatus
     is_published: bool
+    is_active: bool
+    video_url: str | None = None
     primary_image: ProductImageResponse | None = None
     images: list[ProductImageResponse] = Field(default_factory=list)
     created_at: datetime
@@ -159,6 +186,7 @@ class ProductPublicResponse(BaseModel):
     category: ProductCategorySummary | None = None
     tags: list[str] = Field(default_factory=list)
     attributes: dict[str, Any] = Field(default_factory=dict)
+    video_url: str | None = None
     primary_image: ProductImageResponse | None = None
     images: list[ProductImageResponse] = Field(default_factory=list)
     created_at: datetime
@@ -174,3 +202,4 @@ class ProductPublicListResponse(BaseModel):
     page: int
     limit: int
     pages: int
+

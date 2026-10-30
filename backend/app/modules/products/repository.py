@@ -55,6 +55,7 @@ class ProductRepository:
         search: str | None = None,
         category_id: uuid.UUID | None = None,
         status: ProductStatus | None = None,
+        is_active: bool | None = None,
         sort_by: str = "created_at",
         sort_order: str = "desc",
     ) -> tuple[list[Product], int, ProductStatusCounts]:
@@ -66,6 +67,9 @@ class ProductRepository:
 
         if status:
             conditions.append(Product.status == status)
+
+        if is_active is not None:
+            conditions.append(Product.is_active == is_active)
 
         if search and search.strip():
             term = f"%{search.strip().lower()}%"
@@ -141,8 +145,11 @@ class ProductRepository:
         sort_by: str = "created_at",
         sort_order: str = "desc",
     ) -> tuple[list[Product], int]:
-        """List products for public storefront, restricted to published items."""
-        conditions = [Product.status == ProductStatus.PUBLISHED]
+        """List products for public storefront, restricted to published and active items."""
+        conditions = [
+            Product.status == ProductStatus.PUBLISHED,
+            Product.is_active == True,  # noqa: E712
+        ]
 
         # Join category to filter by active status or category slug
         query = (

@@ -1,12 +1,13 @@
 import uuid
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, File, Form, Query, UploadFile, status
 
 from app.dependencies.auth import get_current_active_admin
 from app.models.user import User
 from app.modules.products.dependencies import get_product_service
 from app.modules.products.models import ProductStatus
 from app.modules.products.schemas import (
+    ProductActiveUpdate,
     ProductCreate,
     ProductListResponse,
     ProductPublicListResponse,
@@ -31,7 +32,7 @@ public_router = APIRouter()
     response_model=ProductResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Create Product",
-    description="Registers a new jewellery product with SKU, slug, attributes, and images.",
+    description="Registers a new jewellery product with SKU, slug, attributes, and media.",
 )
 async def create_product(
     payload: ProductCreate,
@@ -48,8 +49,8 @@ async def create_product(
     status_code=status.HTTP_200_OK,
     summary="List Admin Products",
     description=(
-        "Lists products with search, category filtering, lifecycle status filtering, "
-        "and count breakdown."
+        "Lists products with search, category filtering, active status, "
+        "lifecycle status filtering, and count breakdown."
     ),
 )
 async def list_admin_products(
@@ -62,6 +63,7 @@ async def list_admin_products(
     status: ProductStatus | None = Query(
         default=None, description="Filter by status (draft, published, archived)"
     ),
+    is_active: bool | None = Query(default=None, description="Filter by active status"),
     sort_by: str = Query(
         default="created_at",
         pattern="^(title|created_at|updated_at)$",
@@ -80,6 +82,7 @@ async def list_admin_products(
         search=search,
         category_id=category_id,
         status=status,
+        is_active=is_active,
         sort_by=sort_by,
         sort_order=sort_order,
     )
@@ -91,7 +94,7 @@ async def list_admin_products(
     status_code=status.HTTP_200_OK,
     summary="Get Product Details",
     description=(
-        "Fetches full product details including attributes, category, and all gallery images."
+        "Fetches full product details including attributes, category, video, and gallery images."
     ),
 )
 async def get_product(
@@ -137,11 +140,108 @@ async def update_product_status(
     return await service.update_product_status(id, payload.status)
 
 
+@admin_router.patch(
+    "/{id}/active",
+    response_model=ProductResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Toggle Product Active Status",
+    description="Activates or deactivates a product. Inactive products are hidden from storefront.",
+)
+async def toggle_product_active(
+    id: uuid.UUID,
+    payload: ProductActiveUpdate,
+    service: ProductService = Depends(get_product_service),
+    current_user: User = Depends(get_current_active_admin),
+) -> ProductResponse:
+    """Activate or deactivate a product."""
+    return await service.toggle_product_active(id, payload.is_active)
+
+
+@admin_router.post(
+    "/{id}/images",
+    response_model=ProductResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Upload Product Image to Cloudinary",
+    description=(
+        "Uploads a product image directly to Cloudinary and adds it to the product gallery. "
+        "Strictly enforces a maximum of 5 images per product."
+    ),
+)
+async def upload_product_image(
+    id: uuid.UUID,
+    file: UploadFile = File(..., description="Image file (JPEG, PNG, WebP, AVIF; max 10MB)"),
+    is_primary: bool = Form(default=False, description="Whether this is the primary hero image"),
+    alt_text: str | None = Form(default=None, description="Image accessibility alt text"),
+    service: ProductService = Depends(get_product_service),
+    current_user: User = Depends(get_current_active_admin),
+) -> ProductResponse:
+    """Upload product image to Cloudinary (up to 5 images max)."""
+    return await service.upload_product_image(
+        product_id=id,
+        file=file,
+        is_primary=is_primary,
+        alt_text=alt_text,
+    )
+
+
+@admin_router.delete(
+    "/{id}/images/{image_id}",
+    response_model=ProductResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Delete Product Image",
+    description="Removes a product image from the gallery and cleans up storage in Cloudinary.",
+)
+async def delete_product_image(
+    id: uuid.UUID,
+    image_id: uuid.UUID,
+    service: ProductService = Depends(get_product_service),
+    current_user: User = Depends(get_current_active_admin),
+) -> ProductResponse:
+    """Delete a product image by image UUID."""
+    return await service.delete_product_image(product_id=id, image_id=image_id)
+
+
+@admin_router.post(
+    "/{id}/video",
+    response_model=ProductResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Upload Product Video to Cloudinary",
+    description=(
+        "Uploads a product video directly to Cloudinary (MP4, WebM, MOV; max 100MB). "
+        "Each product can hold 1 video; uploading replaces any existing video."
+    ),
+)
+async def upload_product_video(
+    id: uuid.UUID,
+    file: UploadFile = File(..., description="Video file (MP4, WebM, MOV; max 100MB)"),
+    service: ProductService = Depends(get_product_service),
+    current_user: User = Depends(get_current_active_admin),
+) -> ProductResponse:
+    """Upload product video to Cloudinary."""
+    return await service.upload_product_video(product_id=id, file=file)
+
+
+@admin_router.delete(
+    "/{id}/video",
+    response_model=ProductResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Delete Product Video",
+    description="Removes video from the product specification.",
+)
+async def delete_product_video(
+    id: uuid.UUID,
+    service: ProductService = Depends(get_product_service),
+    current_user: User = Depends(get_current_active_admin),
+) -> ProductResponse:
+    """Delete product video."""
+    return await service.delete_product_video(product_id=id)
+
+
 @admin_router.delete(
     "/{id}",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete Product",
-    description="Removes product and cascade-deletes its associated images.",
+    description="Removes product and cascade-deletes its associated media from Cloudinary.",
 )
 async def delete_product(
     id: uuid.UUID,
@@ -153,7 +253,7 @@ async def delete_product(
 
 
 # -------------------------------------------------------------------------
-# Public Storefront Endpoints (Unauthenticated, Published Only)
+# Public Storefront Endpoints (Unauthenticated, Published & Active Only)
 # -------------------------------------------------------------------------
 
 
@@ -203,7 +303,7 @@ async def list_public_products(
     response_model=ProductPublicResponse,
     status_code=status.HTTP_200_OK,
     summary="Get Published Product Details",
-    description="Returns public product metadata, attributes, and gallery images by slug.",
+    description="Returns public product metadata, attributes, video, and gallery images by slug.",
 )
 async def get_public_product(
     slug: str,

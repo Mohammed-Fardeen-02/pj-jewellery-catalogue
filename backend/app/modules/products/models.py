@@ -86,6 +86,16 @@ class Product(Base, TimestampMixin):
         nullable=False,
         index=True,
     )
+    is_active: Mapped[bool] = mapped_column(
+        Boolean,
+        default=True,
+        nullable=False,
+        index=True,
+    )
+    video_url: Mapped[str | None] = mapped_column(
+        String(512),
+        nullable=True,
+    )
 
     # Relationships
     category: Mapped["Category | None"] = relationship(
@@ -102,12 +112,13 @@ class Product(Base, TimestampMixin):
 
     def __repr__(self) -> str:
         return (
-            f"<Product id={self.id} sku={self.sku} slug={self.slug} status={self.status.value}>"
+            f"<Product id={self.id} sku={self.sku} slug={self.slug} "
+            f"status={self.status.value} is_active={self.is_active}>"
         )
 
 
 class ProductImage(Base, TimestampMixin):
-    """Product image entity referencing external object storage."""
+    """Product image entity referencing external object storage (e.g. Cloudinary)."""
 
     __tablename__ = "product_images"
 
@@ -125,6 +136,10 @@ class ProductImage(Base, TimestampMixin):
     storage_path: Mapped[str] = mapped_column(
         String(512),
         nullable=False,
+    )
+    public_id: Mapped[str | None] = mapped_column(
+        String(255),
+        nullable=True,
     )
     alt_text: Mapped[str | None] = mapped_column(
         String(255),
