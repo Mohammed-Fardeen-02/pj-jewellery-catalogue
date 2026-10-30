@@ -48,6 +48,20 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(default=15, ge=1)
     REFRESH_TOKEN_EXPIRE_DAYS: int = Field(default=7, ge=1)
 
+    # Initial Super Administrator Seeding Credentials
+    SUPERADMIN_EMAIL: str = Field(
+        default="admin@pjjewellery.com",
+        description="Initial super admin bootstrap email",
+    )
+    SUPERADMIN_PASSWORD: str = Field(
+        default="Admin@PJ2026!Secured",
+        description="Initial super admin bootstrap password",
+    )
+    SUPERADMIN_FULL_NAME: str = Field(
+        default="PJ Super Administrator",
+        description="Initial super admin display name",
+    )
+
     # CORS & Frontend Integration
     FRONTEND_URL: str = Field(default="http://localhost:3000")
     ALLOWED_ORIGINS: list[str] = Field(

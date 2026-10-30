@@ -151,7 +151,51 @@ backend/
 
 ---
 
-## 4. How to Run the Backend
+## 4. Environment Variables Configuration (`.env`)
+
+The backend uses `pydantic-settings` to parse and validate all environment variables from `backend/.env`.
+
+A template with empty placeholder variables is provided in [`.env.example`](file:///backend/.env.example). Create your local configuration file by running:
+```bash
+cp .env.example .env
+```
+
+### Complete Environment Variables Reference
+
+| Variable | Type | Default Value | Description |
+|---|---|---|---|
+| `APP_NAME` | `string` | `"PJ Jewellery Catalogue API"` | Human-readable application title. |
+| `APP_ENV` | `string` | `"development"` | Environment profile (`development`, `staging`, `production`, `test`). |
+| `API_V1_PREFIX` | `string` | `"/api/v1"` | URL prefix for all version 1 endpoints. |
+| `DEBUG` | `boolean` | `true` (dev) / `false` (prod) | FastAPI debug and verbose error mode. Must be `false` in production. |
+| `HOST` | `string` | `"0.0.0.0"` | Host IP address to bind Uvicorn server. |
+| `PORT` | `integer` | `8000` | Port number to bind Uvicorn server. |
+| `DATABASE_URL` | `string` | `postgresql+asyncpg://...` | Asynchronous SQLAlchemy connection string (`asyncpg` for PostgreSQL or `aiosqlite` for local SQLite). |
+| `DATABASE_POOL_SIZE` | `integer` | `10` | SQLAlchemy connection pool size. |
+| `DATABASE_MAX_OVERFLOW`| `integer` | `20` | Max overflow connections beyond pool size. |
+| `DATABASE_POOL_TIMEOUT` | `integer` | `30` | Timeout in seconds waiting for pool connection. |
+| `DATABASE_POOL_PRE_PING`| `boolean` | `true` | Tests connection validity prior to checkout. |
+| `JWT_SECRET_KEY` | `string` | `""` | Cryptographic secret for signing tokens (minimum 32 chars in staging/production). |
+| `JWT_ALGORITHM` | `string` | `"HS256"` | JWT signature algorithm. |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | `integer` | `15` | Expiration window for access tokens (minutes). |
+| `REFRESH_TOKEN_EXPIRE_DAYS` | `integer` | `7` | Expiration window for refresh tokens (days). |
+| `SUPERADMIN_EMAIL` | `string` | `"admin@pjjewellery.com"` | Super admin bootstrap email for `seed_admin.py`. |
+| `SUPERADMIN_PASSWORD` | `string` | `"Admin@PJ2026!Secured"` | Super admin bootstrap password (minimum 10 characters, hashed with Argon2). |
+| `SUPERADMIN_FULL_NAME`| `string` | `"PJ Super Administrator"` | Super admin display name. |
+| `CLOUDINARY_CLOUD_NAME`| `string` | `""` | Cloudinary account cloud name (from Cloudinary dashboard). |
+| `CLOUDINARY_API_KEY` | `string` | `""` | Cloudinary API Key. |
+| `CLOUDINARY_API_SECRET` | `string` | `""` | Cloudinary API Secret. |
+| `CLOUDINARY_FOLDER` | `string` | `"pj_jewellery"` | Root directory name for uploaded media assets in Cloudinary. |
+| `FRONTEND_URL` | `string` | `"http://localhost:3000"` | Client URL for CORS policy and redirects. |
+| `ALLOWED_ORIGINS` | `JSON array` | `["http://localhost:3000", ...]` | Explicit CORS allowed origins list. |
+| `LOG_LEVEL` | `string` | `"INFO"` | Console log verbosity (`DEBUG`, `INFO`, `WARNING`, `ERROR`). |
+
+> [!NOTE]
+> **Cloudinary Offline Fallback**: If `CLOUDINARY_*` keys are left blank, the application automatically operates in mock mode for offline local development and automated testing without raising errors.
+
+---
+
+## 5. How to Run the Backend
 
 You can run the backend in either of **two effortless ways**:
 
@@ -162,17 +206,20 @@ You can run the backend in either of **two effortless ways**:
 # 1. Install dependencies
 pip install -r requirements.txt
 
-# 2. Copy environment settings (pre-configured with local DB)
+# 2. Copy environment settings
 cp .env.example .env
 
-# 3. Start the server
+# 3. Seed super administrator from environment
+python scripts/seed_admin.py
+
+# 4. Start the server
 uvicorn app.main:app --reload --port 8000
 # Or: python run.py
 ```
 
 - **Interactive Swagger UI**: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
 - **Health Check**: [http://127.0.0.1:8000/health](http://127.0.0.1:8000/health)
-- **Pre-seeded Admin User**: `admin@pjjewellery.com` / `Admin123456!`
+- **Default Super Admin**: `admin@pjjewellery.com` / `Admin@PJ2026!Secured`
 
 ---
 
@@ -185,7 +232,7 @@ docker compose up -d --build
 
 # 2. Run initial database migration & seed admin inside Docker
 docker compose exec api alembic upgrade head
-docker compose exec -e SEED_ADMIN_EMAIL="admin@pjjewellery.com" -e SEED_ADMIN_PASSWORD="Admin123456!" api python scripts/seed_admin.py
+docker compose exec api python scripts/seed_admin.py
 
 # 3. View real-time logs
 docker compose logs -f api
@@ -196,7 +243,7 @@ docker compose down
 
 ---
 
-## 5. Database Management (Alembic)
+## 6. Database Management (Alembic)
 
 To apply or verify database migrations:
 ```bash
@@ -205,7 +252,7 @@ python -m alembic upgrade head
 
 ---
 
-## 6. Testing & Code Quality
+## 7. Testing & Code Quality
 
 ### Running Tests
 All tests run in-memory using `aiosqlite` and mocked dependencies for instant, zero-flakiness execution:
@@ -227,24 +274,23 @@ python -m ruff format .
 
 ---
 
-## 7. Foundation Status & Known Limitations
+## 8. Implementation Status
 
-### Implemented Foundation Features:
+### Implemented Features:
 - [x] Versioned API router under `/api/v1`.
 - [x] Process health probe (`GET /health`) and liveness probe (`GET /api/v1/health/live`).
-- [x] Safe database readiness probe (`GET /api/v1/health/ready`) that catches connectivity failures and returns HTTP 503 without leaking hostnames, credentials, or stack traces.
+- [x] Safe database readiness probe (`GET /api/v1/health/ready`) with sanitized responses.
 - [x] Standardized error handling envelope for domain exceptions, validation errors (422), and internal exceptions (500).
 - [x] Request correlation ID (`X-Request-ID`) propagation and safe duration logging.
 - [x] Administrator login (`POST /api/v1/auth/login`) with Argon2 password hashing via `pwdlib`.
 - [x] JWT token pair issuance (access token and refresh token) with explicit claims (`sub`, `type`, `iat`, `exp`, `jti`).
 - [x] Profile endpoint (`GET /api/v1/auth/me`) with `get_current_user` and database active-status verification.
 - [x] Token refresh endpoint (`POST /api/v1/auth/refresh`).
-- [x] SQLAlchemy 2.0 Async ORM models for `User`, `Category`, `Product`, and `ProductImage` with Alembic migration metadata discovery.
+- [x] Initial super administrator seeding script (`scripts/seed_admin.py`) configured via `.env`.
+- [x] **Category Master**: Complete CRUD (`/api/v1/categories`), slug generation, active/inactive cascading, and validation.
+- [x] **Product Master**: Complete CRUD (`/api/v1/products`), multi-image uploads (up to 5 images), video upload, and status management.
+- [x] **Cloudinary Media Storage**: Asynchronous image and video upload integration with automatic local mock fallback.
+- [x] **Public Storefront APIs**: Filtered endpoints (`/api/v1/public/categories`, `/api/v1/public/products`) serving only active categories and active/published items.
+- [x] SQLAlchemy 2.0 Async ORM models for `User`, `Category`, `Product`, and `ProductImage` with Alembic migrations.
 - [x] Production Dockerfile with non-root security user and Docker Compose setup with PostgreSQL 16.
 
-### Planned for Subsequent Milestones:
-- [ ] **Full Catalogue CRUD**: Category and product administration routes return explicit `501 Not Implemented` with documentation.
-- [ ] **Persistent Refresh Token Revocation / Blacklist**: Storing refresh token JTIs in Redis or database table for instant revocation upon logout.
-- [ ] **Cloud Media Storage**: AWS S3 / Cloudflare R2 presigned URLs for jewellery high-resolution imagery.
-- [ ] **AI-Powered Search & Semantic Tagging**: Vector embeddings and LLM jewellery attributes extraction.
-- [ ] **Brand Master**: Intentionally omitted at this stage because PJ is a single-brand catalogue.

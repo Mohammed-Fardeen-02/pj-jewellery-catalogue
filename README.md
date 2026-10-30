@@ -38,6 +38,36 @@ pj-jewellery-catalogue/
 
 ---
 
+---
+
+## ⚙️ Environment Configuration (`.env`)
+
+A centralized template with empty variables is provided in root [`.env.example`](file:///.env.example) and backend [`backend/.env.example`](file:///backend/.env.example).
+
+### Configuration Steps:
+1. **Backend Configuration**:
+   ```bash
+   cp backend/.env.example backend/.env
+   ```
+2. **Configure Required Variables**:
+   * **Database**: `DATABASE_URL` (Preconfigured for Docker: `postgresql+asyncpg://postgres:postgres@localhost:5432/pj_jewellery_dev` or SQLite: `sqlite+aiosqlite:///./dev_local.db`).
+   * **Super Administrator Credentials**:
+     * `SUPERADMIN_EMAIL="admin@pjjewellery.com"`
+     * `SUPERADMIN_PASSWORD="Admin@PJ2026!Secured"` (Must be at least 10 chars, hashed with Argon2)
+     * `SUPERADMIN_FULL_NAME="PJ Super Administrator"`
+   * **Cloudinary Media Storage** (Max 5 images per product, 1 video):
+     * `CLOUDINARY_CLOUD_NAME=""` (From [Cloudinary Console](https://console.cloudinary.com))
+     * `CLOUDINARY_API_KEY=""`
+     * `CLOUDINARY_API_SECRET=""`
+     * `CLOUDINARY_FOLDER="pj_jewellery"`
+     *(Note: If left empty, Cloudinary operates in mock mode for offline local development without failing)*
+   * **JWT Authentication**:
+     * `JWT_SECRET_KEY="replace-this-with-a-secure-random-secret-key-at-least-32-chars-long"`
+     * `ACCESS_TOKEN_EXPIRE_MINUTES=15`
+     * `REFRESH_TOKEN_EXPIRE_DAYS=7`
+
+---
+
 ## 🚀 Quick Start Guide
 
 ### Prerequisites
@@ -57,10 +87,10 @@ docker compose up -d
 # 2. Run database migrations
 docker compose exec api alembic upgrade head
 
-# 3. Seed catalogue (Rings, Necklaces, Bracelets, Earrings, Products)
+# 3. Seed catalogue (Categories & Products)
 docker compose exec api python scripts/seed_catalogue.py
 
-# 4. (Optional) Seed initial administrator account
+# 4. Seed / Synchronize Super Administrator account from .env
 docker compose exec api python scripts/seed_admin.py
 ```
 
@@ -68,6 +98,10 @@ docker compose exec api python scripts/seed_admin.py
 * **Swagger API Documentation**: `http://localhost:8000/docs`
 * **ReDoc Documentation**: `http://localhost:8000/redoc`
 * **Health Check**: `http://localhost:8000/health`
+* **Super Admin Login**:
+  * **Email**: `admin@pjjewellery.com`
+  * **Password**: `Admin@PJ2026!Secured`
+  * **Role**: `super_admin`
 
 ---
 

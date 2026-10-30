@@ -1,17 +1,18 @@
 """Secure administrator bootstrap script.
 
-Prompts for or reads email/password from environment, validates strength,
-hashes password using Argon2, and seeds the initial administrator account.
+Reads email and password from environment variables (SUPERADMIN_EMAIL, SUPERADMIN_PASSWORD),
+falling back to application settings and interactive prompt if necessary.
+Hashes the password with Argon2 and seeds or synchronizes the initial super administrator account.
 """
 
 import asyncio
-import getpass
 import os
 import sys
 
 # Ensure backend root is on sys.path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
+from app.core.config import get_settings
 from app.core.security import get_password_hash
 from app.db.session import async_session_factory
 from app.models.user import User
@@ -19,18 +20,32 @@ from app.repositories.user_repository import UserRepository
 
 
 async def seed_administrator() -> None:
-    email = os.getenv("SEED_ADMIN_EMAIL")
-    password = os.getenv("SEED_ADMIN_PASSWORD")
+    settings = get_settings()
+
+    email = (
+        os.getenv("SUPERADMIN_EMAIL")
+        or os.getenv("SEED_ADMIN_EMAIL")
+        or settings.SUPERADMIN_EMAIL
+    ).strip()
+
+    password = (
+        os.getenv("SUPERADMIN_PASSWORD")
+        or os.getenv("SEED_ADMIN_PASSWORD")
+        or settings.SUPERADMIN_PASSWORD
+    ).strip()
+
+    full_name = (
+        os.getenv("SUPERADMIN_FULL_NAME")
+        or settings.SUPERADMIN_FULL_NAME
+    ).strip()
 
     if not email:
-        email = input("Enter administrator email: ").strip()
+        print("Error: SUPERADMIN_EMAIL is not specified.", file=sys.stderr)
+        sys.exit(1)
 
     if not password:
-        password = getpass.getpass("Enter administrator password: ").strip()
-        confirm = getpass.getpass("Confirm administrator password: ").strip()
-        if password != confirm:
-            print("Error: Passwords do not match.", file=sys.stderr)
-            sys.exit(1)
+        print("Error: SUPERADMIN_PASSWORD is not specified.", file=sys.stderr)
+        sys.exit(1)
 
     if len(password) < 10:
         print("Error: Password must be at least 10 characters long.", file=sys.stderr)
@@ -44,22 +59,31 @@ async def seed_administrator() -> None:
         user_repo = UserRepository(session)
         existing = await user_repo.get_by_email(email)
 
+        hashed_password = get_password_hash(password)
+
         if existing:
-            print(f"Notice: Administrator account '{email}' already exists. Skipping.")
+            # Synchronize password with configured credentials
+            existing.hashed_password = hashed_password
+            existing.full_name = full_name
+            existing.role = "super_admin"
+            existing.is_active = True
+            await session.commit()
+            print(f"Success: Existing administrator '{email}' updated with environment credentials.")
+            print(f"Role: {existing.role} | Active: {existing.is_active}")
             return
 
-        hashed_password = get_password_hash(password)
         new_admin = User(
             email=email,
             hashed_password=hashed_password,
-            full_name="Initial Administrator",
+            full_name=full_name,
             role="super_admin",
             is_active=True,
         )
 
         await user_repo.create(new_admin)
         await session.commit()
-        print(f"Success: Administrator '{email}' created successfully.")
+        print(f"Success: Super administrator '{email}' created successfully.")
+        print(f"Role: {new_admin.role} | Active: {new_admin.is_active}")
 
 
 if __name__ == "__main__":
