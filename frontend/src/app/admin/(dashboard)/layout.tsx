@@ -16,13 +16,8 @@ import {
 import { LogoutButton } from "@/features/auth";
 import { cn } from "@/lib/utils/cn";
 
-export default function AdminDashboardLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+function SidebarNav({ onNavigate }: { onNavigate: () => void }) {
   const pathname = usePathname();
-  const [mobileSidebarOpen, setMobileSidebarOpen] = React.useState(false);
 
   const navigation = [
     { name: "Overview", href: "/admin", icon: LayoutDashboard },
@@ -30,6 +25,39 @@ export default function AdminDashboardLayout({
     { name: "Categories Master", href: "/admin/categories", icon: FolderTree },
     { name: "System Settings", href: "/admin/settings", icon: Settings },
   ];
+
+  return (
+    <nav className="p-4 space-y-1">
+      {navigation.map((item) => {
+        const isActive = pathname === item.href;
+        const Icon = item.icon;
+        return (
+          <Link
+            key={item.name}
+            href={item.href}
+            onClick={onNavigate}
+            className={cn(
+              "flex items-center gap-3 px-3.5 py-2.5 text-xs uppercase tracking-wider font-medium transition-colors",
+              isActive
+                ? "bg-[#272320] text-[#B08D57] border-l-2 border-[#B08D57]"
+                : "text-[#A8A29A] hover:bg-[#23201D] hover:text-white"
+            )}
+          >
+            <Icon className="w-4 h-4 shrink-0" />
+            <span>{item.name}</span>
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
+
+export default function AdminDashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const [mobileSidebarOpen, setMobileSidebarOpen] = React.useState(false);
 
   return (
     <div className="min-h-screen bg-[#F7F4EF] flex">
@@ -66,29 +94,10 @@ export default function AdminDashboardLayout({
             </button>
           </div>
 
-          {/* Navigation Links */}
-          <nav className="p-4 space-y-1">
-            {navigation.map((item) => {
-              const isActive = pathname === item.href;
-              const Icon = item.icon;
-              return (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  onClick={() => setMobileSidebarOpen(false)}
-                  className={cn(
-                    "flex items-center gap-3 px-3.5 py-2.5 text-xs uppercase tracking-wider font-medium transition-colors",
-                    isActive
-                      ? "bg-[#272320] text-[#B08D57] border-l-2 border-[#B08D57]"
-                      : "text-[#A8A29A] hover:bg-[#23201D] hover:text-white"
-                  )}
-                >
-                  <Icon className="w-4 h-4 shrink-0" />
-                  <span>{item.name}</span>
-                </Link>
-              );
-            })}
-          </nav>
+          {/* Navigation Links wrapped in Suspense for Next.js PPR */}
+          <React.Suspense fallback={<div className="p-4 space-y-2" />}>
+            <SidebarNav onNavigate={() => setMobileSidebarOpen(false)} />
+          </React.Suspense>
         </div>
 
         {/* Sidebar Footer */}
@@ -147,7 +156,11 @@ export default function AdminDashboardLayout({
         </div>
 
         {/* Page Content */}
-        <main className="flex-1 p-4 sm:p-8 max-w-7xl mx-auto w-full">{children}</main>
+        <main className="flex-1 p-4 sm:p-8 max-w-7xl mx-auto w-full">
+          <React.Suspense fallback={<div className="p-8 text-center text-xs text-[#716B64]">Loading view...</div>}>
+            {children}
+          </React.Suspense>
+        </main>
       </div>
     </div>
   );
