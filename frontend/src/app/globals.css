@@ -1,0 +1,55 @@
+@import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap");
+@import "tailwindcss";
+
+@theme {
+  --color-brand-bg: #FAF8F4;
+  --color-brand-surface: #FFFFFF;
+  --color-brand-surface-warm: #F6F3EE;
+  --color-brand-text: #24211E;
+  --color-brand-text-muted: #716B64;
+  --color-brand-gold: #B08D57;
+  --color-brand-gold-hover: #987642;
+  --color-brand-gold-light: #F7F1E8;
+  --color-brand-border: #E8E1D8;
+  --color-brand-border-light: #F0EAE2;
+  --color-brand-charcoal: #1A1816;
+
+  --font-serif: "Cormorant Garamond", Georgia, serif;
+  --font-sans: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+:root {
+  --background: #FAF8F4;
+  --foreground: #24211E;
+  --surface: #FFFFFF;
+  --surface-warm: #F6F3EE;
+  --border: #E8E1D8;
+  --gold: #B08D57;
+  --gold-hover: #987642;
+  --gold-light: #F7F1E8;
+  --text-primary: #24211E;
+  --text-secondary: #716B64;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Elegant editorial styling */
+.font-editorial {
+  font-family: var(--font-serif);
+}
+
+/* Custom focus ring */
+.focus-ring {
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+}
+.focus-ring:focus-visible {
+  outline-color: var(--gold);
+}

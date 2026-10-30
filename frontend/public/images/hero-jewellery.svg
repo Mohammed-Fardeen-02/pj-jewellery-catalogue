@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" width="100%" height="100%">
+  <defs>
+    <radialGradient id="heroBg" cx="60%" cy="40%" r="75%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="50%" stop-color="#FAF6F0"/>
+      <stop offset="100%" stop-color="#EBE3D4"/>
+    </radialGradient>
+    <linearGradient id="goldSheen" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F2DFBC"/>
+      <stop offset="40%" stop-color="#B08D57"/>
+      <stop offset="70%" stop-color="#8C6E3D"/>
+      <stop offset="100%" stop-color="#DCC59B"/>
+    </linearGradient>
+    <linearGradient id="gemLight" x1="20%" y1="0%" x2="80%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.95"/>
+      <stop offset="50%" stop-color="#E0F2FE" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0.95"/>
+    </linearGradient>
+  </defs>
+  
+  <rect width="100%" height="100%" fill="url(#heroBg)"/>
+  
+  <!-- Subtle Geometry & Shadow -->
+  <ellipse cx="680" cy="580" rx="360" ry="40" fill="#D3C7B5" opacity="0.35"/>
+  <circle cx="680" cy="400" r="280" fill="none" stroke="#E8E1D8" stroke-width="1.5" stroke-dasharray="12,12"/>
+
+  <!-- High Jewellery Showcase Ring -->
+  <g transform="translate(680, 400)">
+    <!-- Thick architectural band -->
+    <ellipse cx="0" cy="80" rx="190" ry="170" fill="none" stroke="url(#goldSheen)" stroke-width="32"/>
+    <ellipse cx="0" cy="74" rx="186" ry="164" fill="none" stroke="#FFFFFF" stroke-width="3" opacity="0.7"/>
+
+    <!-- Pavilion and Prongs -->
+    <path d="M -50 -50 L -30 -130 L 30 -130 L 50 -50 Z" fill="#E5E7EB" stroke="#9CA3AF" stroke-width="2"/>
+    
+    <!-- Large Radiant Brilliant Gemstone -->
+    <polygon points="0,-190 85,-130 60,-50 -60,-50 -85,-130" fill="url(#gemLight)" stroke="#B0C4DE" stroke-width="2.5"/>
+    <polygon points="0,-190 40,-135 -40,-135" fill="#FFFFFF" opacity="0.95"/>
+    <polygon points="40,-135 85,-130 40,-85 0,-105" fill="#E0F2FE" opacity="0.75"/>
+    <polygon points="-40,-135 -85,-130 -40,-85 0,-105" fill="#F0F9FF" opacity="0.85"/>
+    <polygon points="0,-105 40,-85 0,-50 -40,-85" fill="#FFFFFF" opacity="0.95"/>
+    
+    <!-- Sparkle Stars -->
+    <path d="M 0 -220 L 5 -200 L 25 -195 L 5 -190 L 0 -170 L -5 -190 L -25 -195 L -5 -200 Z" fill="#B08D57"/>
+    <path d="M 120 -80 L 123 -70 L 133 -67 L 123 -64 L 120 -54 L 117 -64 L 107 -67 L 117 -70 Z" fill="#B08D57" opacity="0.8"/>
+  </g>
+</svg>
