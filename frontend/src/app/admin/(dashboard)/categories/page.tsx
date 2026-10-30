@@ -10,6 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ConfirmationModal } from "@/components/ui/confirmation-modal";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LoadingSpinner } from "@/components/ui/loading";
+import { Pagination } from "@/components/ui/pagination";
 import {
   categoryApi,
   CategoryFormModal,
@@ -26,6 +27,7 @@ export default function AdminCategoriesPage() {
   const [categories, setCategories] = React.useState<CategoryResponse[]>([]);
   const [total, setTotal] = React.useState(0);
   const [page, setPage] = React.useState(1);
+  const [limit, setLimit] = React.useState(10);
   const [isLoading, setIsLoading] = React.useState(true);
   const [search, setSearch] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState<"all" | "active" | "inactive">("all");
@@ -46,7 +48,7 @@ export default function AdminCategoriesPage() {
         statusFilter === "all" ? undefined : statusFilter === "active";
       const res = await categoryApi.listAdmin(token || undefined, {
         page,
-        limit: 20,
+        limit,
         search: search.trim() || undefined,
         is_active: activeParam,
       });
@@ -57,7 +59,7 @@ export default function AdminCategoriesPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [token, page, search, statusFilter]);
+  }, [token, page, limit, search, statusFilter]);
 
   React.useEffect(() => {
     fetchCategories();
@@ -292,6 +294,24 @@ export default function AdminCategoriesPage() {
                   ))}
                 </tbody>
               </table>
+            </div>
+          )}
+
+          {/* Table Pagination */}
+          {total > 0 && (
+            <div className="border-t border-[#E8E1D8] px-4 bg-[#FAF8F4]/50">
+              <Pagination
+                page={page}
+                total={total}
+                limit={limit}
+                onPageChange={setPage}
+                onLimitChange={(newLimit) => {
+                  setLimit(newLimit);
+                  setPage(1);
+                }}
+                limitOptions={[10, 20, 50]}
+                itemLabel="categories"
+              />
             </div>
           )}
         </CardContent>

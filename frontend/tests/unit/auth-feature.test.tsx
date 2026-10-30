@@ -92,6 +92,13 @@ describe("features/auth", () => {
         expires_in: 3600,
       };
       vi.spyOn(authApi, "login").mockResolvedValue(mockTokens);
+      vi.spyOn(authApi, "getProfile").mockResolvedValue({
+        id: "mock-admin-id",
+        email: "admin@pjjewellery.com",
+        full_name: "Admin User",
+        role: "super_admin",
+        is_active: true,
+      });
 
       const wrapper = ({ children }: { children: React.ReactNode }) => (
         <AuthProvider>{children}</AuthProvider>

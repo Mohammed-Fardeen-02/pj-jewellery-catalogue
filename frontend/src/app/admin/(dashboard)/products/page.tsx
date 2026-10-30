@@ -13,6 +13,8 @@ import { Switch } from "@/components/ui/switch";
 import { ConfirmationModal } from "@/components/ui/confirmation-modal";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LoadingSpinner } from "@/components/ui/loading";
+import { Pagination } from "@/components/ui/pagination";
+import { CustomSelect } from "@/components/ui/custom-select";
 import {
   productApi,
   ViewProductModal,
@@ -37,6 +39,7 @@ export default function AdminProductsPage() {
     total: 0,
   });
   const [page, setPage] = React.useState(1);
+  const [limit, setLimit] = React.useState(10);
   const [isLoading, setIsLoading] = React.useState(true);
   const [search, setSearch] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState<ProductStatus | "all">("all");
@@ -69,7 +72,7 @@ export default function AdminProductsPage() {
     try {
       const res = await productApi.listAdmin(token || undefined, {
         page,
-        limit: 20,
+        limit,
         search: search.trim() || undefined,
         status: statusFilter === "all" ? undefined : statusFilter,
         category_id: categoryFilter || undefined,
@@ -84,7 +87,7 @@ export default function AdminProductsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [token, page, search, statusFilter, categoryFilter]);
+  }, [token, page, limit, search, statusFilter, categoryFilter]);
 
   React.useEffect(() => {
     fetchProducts();
@@ -228,26 +231,32 @@ export default function AdminProductsPage() {
           />
         </div>
 
-        <div className="flex items-center gap-3 w-full sm:w-auto">
-          <div className="flex items-center gap-1.5 text-xs text-[#716B64]">
-            <Filter className="w-3.5 h-3.5 text-[#B08D57]" />
-            <span>Category:</span>
-          </div>
-          <select
+        <div className="flex items-center gap-2 w-full sm:w-64">
+          <Filter className="w-3.5 h-3.5 text-[#B08D57] flex-shrink-0" />
+          <CustomSelect
             value={categoryFilter}
-            onChange={(e) => {
-              setCategoryFilter(e.target.value);
+            onChange={(val) => {
+              setCategoryFilter(val);
               setPage(1);
             }}
-            className="h-9 px-3 border border-[#E8E1D8] bg-[#FAF8F4] rounded text-xs text-[#24211E] focus:outline-none focus:border-[#B08D57]"
-          >
-            <option value="">All Categories</option>
-            {categories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name} {!c.is_active ? "(Inactive)" : ""}
-              </option>
-            ))}
-          </select>
+            options={[
+              { value: "", label: "All Categories" },
+              ...categories.map((c) => ({
+                value: c.id,
+                label: c.name,
+                badge: !c.is_active ? (
+                  <span className="px-1 py-0.5 text-[9px] bg-stone-100 text-stone-500 rounded border border-stone-200">
+                    Inactive
+                  </span>
+                ) : undefined,
+              })),
+            ]}
+            placeholder="All Categories"
+            searchable={true}
+            searchPlaceholder="Filter category..."
+            clearable={true}
+            className="w-full"
+          />
         </div>
       </div>
 
@@ -392,6 +401,24 @@ export default function AdminProductsPage() {
                   })}
                 </tbody>
               </table>
+            </div>
+          )}
+
+          {/* Table Pagination */}
+          {total > 0 && (
+            <div className="border-t border-[#E8E1D8] px-4 bg-[#FAF8F4]/50">
+              <Pagination
+                page={page}
+                total={total}
+                limit={limit}
+                onPageChange={setPage}
+                onLimitChange={(newLimit) => {
+                  setLimit(newLimit);
+                  setPage(1);
+                }}
+                limitOptions={[10, 20, 50]}
+                itemLabel="pieces"
+              />
             </div>
           )}
         </CardContent>

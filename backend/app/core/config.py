@@ -45,7 +45,7 @@ class Settings(BaseSettings):
         description="Secret key for signing JWT tokens",
     )
     JWT_ALGORITHM: str = Field(default="HS256", description="JWT signing algorithm")
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(default=15, ge=1)
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(default=1440, ge=1)
     REFRESH_TOKEN_EXPIRE_DAYS: int = Field(default=7, ge=1)
 
     # Initial Super Administrator Seeding Credentials

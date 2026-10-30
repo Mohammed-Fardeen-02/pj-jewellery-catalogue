@@ -32,7 +32,7 @@ services:
       DATABASE_URL: "postgresql+asyncpg://postgres:postgres@postgres:5432/pj_jewellery_dev"
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:-development-secret-key-change-in-production-min-32-chars}
       JWT_ALGORITHM: "HS256"
-      ACCESS_TOKEN_EXPIRE_MINUTES: "15"
+      ACCESS_TOKEN_EXPIRE_MINUTES: "1440"
       REFRESH_TOKEN_EXPIRE_DAYS: "7"
       SUPERADMIN_EMAIL: ${SUPERADMIN_EMAIL:-admin@pjjewellery.com}
       SUPERADMIN_PASSWORD: ${SUPERADMIN_PASSWORD:-Admin@PJ2026!Secured}

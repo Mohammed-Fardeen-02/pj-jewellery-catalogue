@@ -23,7 +23,11 @@ import {
   type ManagedImageItem,
 } from "@/components/ui/multi-image-uploader";
 import { VideoUploader } from "@/components/ui/video-uploader";
-import { categoryApi, type CategoryResponse } from "@/features/categories";
+import {
+  categoryApi,
+  SearchableCategorySelect,
+  type CategoryResponse,
+} from "@/features/categories";
 import {
   productApi,
   type ProductCreatePayload,
@@ -305,31 +309,18 @@ export const ProductForm: React.FC<ProductFormProps> = ({
               />
             </FormField>
 
-            <FormField label="Associated Category">
-              <select
+            <div>
+              <label className="block text-xs font-medium text-[#24211E] mb-1.5">
+                Associated Category
+              </label>
+              <SearchableCategorySelect
                 value={categoryId}
-                onChange={(e) => setCategoryId(e.target.value)}
+                onChange={setCategoryId}
                 disabled={isSubmitting}
-                className="w-full h-10 px-3 border border-[#E8E1D8] bg-white rounded text-xs text-[#24211E] focus:outline-none focus:border-[#B08D57]"
-              >
-                <option value="">-- Select Category --</option>
-                {categories.map((cat) => (
-                  <option key={cat.id} value={cat.id}>
-                    {cat.name} {!cat.is_active ? "(Inactive)" : ""}
-                  </option>
-                ))}
-              </select>
-            </FormField>
-          </div>
-
-          {isCategoryInactive && (
-            <div className="p-3 bg-amber-50 border border-amber-200 text-amber-800 rounded text-xs flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 flex-shrink-0 text-amber-600" />
-              <span>
-                <strong>Category Notice:</strong> The selected category is currently inactive. Products under inactive categories cannot be published or displayed in the customer storefront.
-              </span>
+                allowQuickAdd={true}
+              />
             </div>
-          )}
+          </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <FormField label="SKU Identifier" hint="Unique inventory code (e.g. PJ-CELEST-9F2A)">
