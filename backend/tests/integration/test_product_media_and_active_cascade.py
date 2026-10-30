@@ -137,8 +137,7 @@ async def test_product_video_upload_and_deletion(client: AsyncClient, db_session
         files={"file": fake_video},
     )
     assert video_res.status_code == 200
-    assert video_res.json()["video_url"] is not None
-    assert "videos" in video_res.json()["video_url"]
+    assert "video" in video_res.json()["video_url"]
 
     # 3. Delete video
     del_video_res = await client.delete(

@@ -76,7 +76,7 @@ class Settings(BaseSettings):
     CLOUDINARY_API_KEY: str | None = Field(default=None, description="Cloudinary API key")
     CLOUDINARY_API_SECRET: str | None = Field(default=None, description="Cloudinary API secret")
     CLOUDINARY_FOLDER: str = Field(
-        default="pj_jewellery", description="Cloudinary asset folder prefix"
+        default="", description="Cloudinary asset folder prefix"
     )
 
     @field_validator("DATABASE_URL")
