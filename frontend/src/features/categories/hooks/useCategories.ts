@@ -25,16 +25,37 @@ export function useCategories(options: UseCategoriesOptions = {}) {
     setIsLoading(true);
     setError(null);
     try {
-      const res = await categoryApi.listAdmin(token || undefined, {
-        limit,
-        is_active: isActive,
-      });
-      setCategories(res.items);
-      setTotal(res.total);
+      if (token) {
+        try {
+          const res = await categoryApi.listAdmin(token, {
+            limit,
+            is_active: isActive,
+          });
+          setCategories(res.items);
+          setTotal(res.total);
+          return;
+        } catch {
+          // If admin listing fails with 401/unauthorized, fallback seamlessly to public categories
+        }
+      }
+
+      // Public categories fallback (no auth token required)
+      const publicCats = await categoryApi.listPublic();
+      const mapped: CategoryResponse[] = publicCats.map((c) => ({
+        id: c.id,
+        name: c.name,
+        slug: c.slug,
+        description: c.description || null,
+        is_active: true,
+        product_count: c.product_count ?? 0,
+        created_at: "",
+        updated_at: "",
+      }));
+      setCategories(mapped);
+      setTotal(mapped.length);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to load categories";
       setError(msg);
-      console.error("useCategories error:", err);
     } finally {
       setIsLoading(false);
     }

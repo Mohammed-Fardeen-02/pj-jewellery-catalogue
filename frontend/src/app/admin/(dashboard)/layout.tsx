@@ -23,7 +23,7 @@ import {
   Database,
   Radio,
 } from "lucide-react";
-import { LogoutButton } from "@/features/auth";
+import { LogoutButton, AuthGuard } from "@/features/auth";
 import { cn } from "@/lib/utils/cn";
 
 interface NavItem {
@@ -187,7 +187,8 @@ export default function AdminDashboardLayout({
   const breadcrumbs = React.useMemo(() => getBreadcrumbs(pathname), [pathname]);
 
   return (
-    <div className="min-h-screen bg-[#F7F4EF] flex">
+    <AuthGuard>
+      <div className="min-h-screen bg-[#F7F4EF] flex">
       {/* Mobile Sidebar Overlay */}
       {mobileSidebarOpen && (
         <div
@@ -416,5 +417,6 @@ export default function AdminDashboardLayout({
         </footer>
       </div>
     </div>
+    </AuthGuard>
   );
 }

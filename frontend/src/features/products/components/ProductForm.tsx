@@ -179,12 +179,33 @@ export const ProductForm: React.FC<ProductFormProps> = ({
   React.useEffect(() => {
     async function loadCategories() {
       try {
-        const res = await categoryApi.listAdmin(token || undefined, {
-          limit: 100,
-        });
-        setCategories(res.items);
-      } catch (err) {
-        console.error("Failed to load categories for dropdown", err);
+        if (token) {
+          try {
+            const res = await categoryApi.listAdmin(token, {
+              limit: 100,
+            });
+            setCategories(res.items);
+            return;
+          } catch {
+            // Fallback to public categories
+          }
+        }
+
+        const publicCats = await categoryApi.listPublic();
+        setCategories(
+          publicCats.map((c) => ({
+            id: c.id,
+            name: c.name,
+            slug: c.slug,
+            description: c.description || null,
+            is_active: true,
+            product_count: c.product_count ?? 0,
+            created_at: "",
+            updated_at: "",
+          }))
+        );
+      } catch {
+        // Silent fallback
       }
     }
     loadCategories();
