@@ -47,6 +47,7 @@ import {
   ProductAiSuggestionsDrawer,
   type AiSuggestedFields,
 } from "./ProductAiSuggestionsDrawer";
+import { ProductAiSidebarCard } from "./ProductAiSidebarCard";
 
 export interface ProductFormProps {
   initialProduct?: ProductResponse | null;
@@ -206,6 +207,22 @@ export const ProductForm: React.FC<ProductFormProps> = ({
 
   const selectedCategory = categories.find((c) => c.id === categoryId);
   const isCategoryInactive = selectedCategory && !selectedCategory.is_active;
+
+  const primaryImage = images.find((i) => i.is_primary) || images[0] || null;
+
+  const handleSidebarImageUpload = (file: File) => {
+    const previewUrl = URL.createObjectURL(file);
+    const newItem: ManagedImageItem = {
+      file,
+      image_url: previewUrl,
+      is_primary: true,
+      display_order: 0,
+    };
+    const updated = [newItem, ...images.map((img) => ({ ...img, is_primary: false }))];
+    setImages(updated);
+    toast.info("Image Attached", "Primary photo attached. Extracting gemological suggestions...");
+    handleTriggerAiSuggestions(newItem);
+  };
 
   const handleTriggerAiSuggestions = async (targetImage?: ManagedImageItem) => {
     const chosenImage = targetImage || images.find((i) => i.is_primary) || images[0];
@@ -489,7 +506,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
   };
 
   return (
-    <div className="space-y-6 pb-20 max-w-5xl">
+    <div className="space-y-6 pb-20 max-w-7xl">
       <PageHeader
         title={isEditing ? `Edit Piece: ${initialProduct?.title}` : "New Jewellery Piece"}
         subtitle="Catalogue registration with metal specifications, gemstone attributes, and Cloudinary media."
@@ -513,7 +530,11 @@ export const ProductForm: React.FC<ProductFormProps> = ({
         </div>
       )}
 
-      {/* Card 1: Core Information */}
+      {/* Two-Column Layout: Forms Container on Left, AI Assistant Container on Right */}
+      <div className="flex flex-col lg:flex-row items-start gap-8">
+        {/* Left Column: Main Product Configuration Forms */}
+        <div className="flex-1 min-w-0 space-y-6 w-full">
+          {/* Card 1: Core Information */}
       <Card className="bg-white">
         <CardContent className="p-6 space-y-4">
           <div className="flex items-center gap-2 pb-2 border-b border-[#E8E1D8]">
@@ -1103,6 +1124,20 @@ export const ProductForm: React.FC<ProductFormProps> = ({
           )}
         </div>
       </div>
+    </div>
+
+    {/* Right Column: AI Vision Assistant Container / Card */}
+    <ProductAiSidebarCard
+      primaryImage={primaryImage}
+      onUploadPrimaryImage={handleSidebarImageUpload}
+      isLoading={isAiLoading}
+      onAnalyze={() => handleTriggerAiSuggestions()}
+      suggestions={aiSuggestions}
+      onApplySuggestions={handleApplyAiSuggestions}
+      onClearSuggestions={() => setAiSuggestions(null)}
+      availableCategories={categories}
+    />
+  </div>
 
       {/* Delete Product Confirmation Modal */}
       {isEditing && initialProduct && (
