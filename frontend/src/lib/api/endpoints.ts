@@ -2,10 +2,14 @@
  * Centralized API endpoint registry matching backend contracts.
  */
 export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/+$/, "") || "http://localhost:8000";
+  process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/+$/, "") ||
+  process.env.API_BASE_URL?.replace(/\/+$/, "") ||
+  "http://localhost:8000";
 
 export const API_V1_PREFIX =
-  process.env.NEXT_PUBLIC_API_V1_PREFIX?.replace(/\/+$/, "") || "/api/v1";
+  process.env.NEXT_PUBLIC_API_V1_PREFIX?.replace(/\/+$/, "") ||
+  process.env.API_V1_PREFIX?.replace(/\/+$/, "") ||
+  "/api/v1";
 
 export const ENDPOINTS = {
   // System Health
