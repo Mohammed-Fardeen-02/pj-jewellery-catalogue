@@ -2,8 +2,8 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { Menu, X, Shield, Sparkles, ShoppingBag } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { Menu, X, Shield, Sparkles, ShoppingBag, Search } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useCart } from "@/context/cart-context";
 
@@ -11,8 +11,10 @@ import { categoryApi } from "@/features/categories/api/category.api";
 import type { CategoryPublicResponse } from "@/features/categories/types/category.types";
 
 export function StorefrontHeader() {
+  const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   const [categories, setCategories] = React.useState<CategoryPublicResponse[]>([]);
+  const [searchQuery, setSearchQuery] = React.useState("");
   const pathname = usePathname();
   const { totalItems, openCart } = useCart();
 
@@ -101,8 +103,28 @@ export function StorefrontHeader() {
             })}
           </nav>
 
-          {/* Actions: Cart & Admin Link */}
-          <div className="flex items-center space-x-3 sm:space-x-4">
+          {/* Actions: Search, Cart & Admin Link */}
+          <div className="flex items-center space-x-2 sm:space-x-3">
+            {/* Header Search Input */}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (searchQuery.trim()) {
+                  router.push(`/products?search=${encodeURIComponent(searchQuery.trim())}`);
+                }
+              }}
+              className="hidden lg:flex items-center relative"
+            >
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search jewellery..."
+                className="w-32 focus:w-48 transition-all duration-300 pl-8 pr-2.5 py-1 text-xs bg-white/80 border border-[#DCD3C7] focus:border-[#B08D57] focus:bg-white focus:outline-none rounded-full text-[#24211E] placeholder:text-[#9A9388]"
+              />
+              <Search className="w-3.5 h-3.5 text-[#B08D57] absolute left-2.5 pointer-events-none" />
+            </form>
+
             <button
               type="button"
               onClick={openCart}
@@ -136,6 +158,26 @@ export function StorefrontHeader() {
       {/* Mobile drawer */}
       {mobileMenuOpen && (
         <div className="md:hidden border-b border-[#E8E1D8] bg-[#FAF8F4] px-4 pt-2 pb-6 space-y-3">
+          {/* Mobile Search Input */}
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (searchQuery.trim()) {
+                setMobileMenuOpen(false);
+                router.push(`/products?search=${encodeURIComponent(searchQuery.trim())}`);
+              }
+            }}
+            className="relative w-full mb-3"
+          >
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search jewellery pieces..."
+              className="w-full pl-9 pr-3 py-2 text-xs bg-white border border-[#DCD3C7] focus:border-[#B08D57] rounded-full text-[#24211E] placeholder:text-[#9A9388]"
+            />
+            <Search className="w-4 h-4 text-[#B08D57] absolute left-3 top-2.5 pointer-events-none" />
+          </form>
           {navigation.map((item) => (
             <Link
               key={item.name}

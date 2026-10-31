@@ -197,10 +197,10 @@ export default function AdminDashboardLayout({
         />
       )}
 
-      {/* Sidebar Navigation */}
+      {/* Sidebar Navigation - Fixed 100% screen height */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 bg-[#1A1816] text-[#FAF8F4] flex flex-col justify-between transition-all duration-300 ease-in-out lg:static border-r border-[#2C2723]",
+          "fixed top-0 bottom-0 left-0 z-40 bg-[#1A1816] text-[#FAF8F4] flex flex-col justify-between transition-all duration-300 ease-in-out border-r border-[#2C2723] h-screen overflow-y-auto",
           isCollapsed ? "w-20" : "w-64",
           mobileSidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         )}
@@ -307,7 +307,12 @@ export default function AdminDashboardLayout({
       </aside>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div
+        className={cn(
+          "flex-1 flex flex-col min-w-0 transition-all duration-300 min-h-screen",
+          isCollapsed ? "lg:ml-20" : "lg:ml-64"
+        )}
+      >
         {/* Top Header Bar with Breadcrumbs & Session Info */}
         <header className="h-20 bg-white border-b border-[#E8E1D8] px-4 sm:px-8 flex items-center justify-between sticky top-0 z-30">
           <div className="flex items-center gap-4">

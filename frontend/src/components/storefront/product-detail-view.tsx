@@ -71,9 +71,9 @@ export function ProductDetailView({ product: initialProduct }: ProductDetailView
   const attributes = product.attributes || {};
 
   return (
-    <div className="space-y-12">
-      {/* Back button */}
-      <div>
+    <div className="space-y-6">
+      {/* Breadcrumb / Back button */}
+      <div className="flex items-center justify-between pb-2 border-b border-[#E8E1D8]">
         <Link
           href="/products"
           className="inline-flex items-center gap-1.5 text-xs uppercase tracking-widest text-[#716B64] hover:text-[#24211E] transition-colors"
@@ -81,12 +81,15 @@ export function ProductDetailView({ product: initialProduct }: ProductDetailView
           <ArrowLeft className="w-3.5 h-3.5" />
           Back to Catalogue
         </Link>
+        <span className="text-xs text-[#9E988F] hidden sm:inline-block font-mono">
+          Ref: {product.sku}
+        </span>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
-        {/* Left Column: Visual Media Presentation */}
-        <div className="lg:col-span-7 space-y-4">
-          <div className="relative aspect-4/5 w-full bg-white border border-[#E8E1D8] p-4 sm:p-6 overflow-hidden shadow-sm">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        {/* Left Column: Visual Media Presentation (Controlled height, sticky) */}
+        <div className="lg:col-span-5 space-y-4 lg:sticky lg:top-24">
+          <div className="relative w-full h-[360px] sm:h-[420px] bg-white border border-[#E8E1D8] p-3 rounded-xs shadow-xs overflow-hidden flex items-center justify-center">
             {isVideoMode && product.video_url ? (
               <div className="relative w-full h-full bg-[#1A1816] flex items-center justify-center">
                 <video
@@ -100,29 +103,36 @@ export function ProductDetailView({ product: initialProduct }: ProductDetailView
                 />
               </div>
             ) : (
-              <div className="relative w-full h-full bg-[#FAF8F4] overflow-hidden">
+              <div className="relative w-full h-full bg-[#FAF8F4]/50 flex items-center justify-center overflow-hidden">
                 <Image
                   src={activeImageSrc}
                   alt={activeImage?.alt_text || product.title}
                   fill
                   priority
                   unoptimized={activeImageSrc.startsWith("/images/") || activeImageSrc.endsWith(".svg")}
-                  sizes="(max-width: 1024px) 100vw, 60vw"
-                  className="object-contain p-4"
+                  sizes="(max-width: 1024px) 100vw, 420px"
+                  className="object-contain p-3 transition-transform duration-300 hover:scale-105"
                 />
 
                 {/* Discount Ribbon */}
                 {discountPct && discountPct > 0 && (
-                  <div className="absolute top-4 left-4 bg-[#24211E] text-white px-2.5 py-1 text-xs font-semibold uppercase tracking-wider shadow">
+                  <div className="absolute top-3 left-3 bg-[#24211E] text-white px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider shadow-sm">
                     -{Math.round(discountPct)}% OFF
+                  </div>
+                )}
+
+                {/* Image counter pill */}
+                {images.length > 1 && (
+                  <div className="absolute bottom-3 right-3 bg-white/90 backdrop-blur-xs text-[#24211E] px-2 py-0.5 text-[10px] font-mono border border-[#E8E1D8] rounded-xs shadow-xs">
+                    {selectedMediaIndex + 1} / {images.length}
                   </div>
                 )}
               </div>
             )}
           </div>
 
-          {/* Media Thumbnails Row (Images + Video button) */}
-          <div className="flex flex-wrap items-center gap-3">
+          {/* Media Thumbnails Switcher Row */}
+          <div className="flex items-center gap-2.5 overflow-x-auto pb-1 scrollbar-thin">
             {images.map((img: any, idx: number) => {
               const src = img.image_url || img.storage_path;
               const isSelected = !isVideoMode && selectedMediaIndex === idx;
@@ -133,17 +143,18 @@ export function ProductDetailView({ product: initialProduct }: ProductDetailView
                     setIsVideoMode(false);
                     setSelectedMediaIndex(idx);
                   }}
-                  className={`relative w-16 h-16 sm:w-20 sm:h-20 bg-white border transition-all overflow-hidden ${
+                  className={`relative w-14 h-14 sm:w-16 sm:h-16 shrink-0 bg-white border rounded-xs transition-all overflow-hidden ${
                     isSelected
-                      ? "border-[#B08D57] ring-1 ring-[#B08D57]"
-                      : "border-[#E8E1D8] hover:border-[#B08D57]/60"
+                      ? "border-[#B08D57] ring-2 ring-[#B08D57]/40 shadow-xs scale-102"
+                      : "border-[#E8E1D8] opacity-75 hover:opacity-100 hover:border-[#B08D57]/60"
                   }`}
+                  aria-label={`View image ${idx + 1}`}
                 >
                   <Image
                     src={src}
-                    alt="Thumbnail"
+                    alt={img.alt_text || `Thumbnail ${idx + 1}`}
                     fill
-                    sizes="80px"
+                    sizes="64px"
                     unoptimized={src.startsWith("/images/") || src.endsWith(".svg")}
                     className="object-cover"
                   />
@@ -155,44 +166,55 @@ export function ProductDetailView({ product: initialProduct }: ProductDetailView
             {product.video_url && (
               <button
                 onClick={() => setIsVideoMode(true)}
-                className={`relative w-16 h-16 sm:w-20 sm:h-20 bg-[#24211E] text-white border flex flex-col items-center justify-center gap-1 transition-all ${
+                className={`relative w-14 h-14 sm:w-16 sm:h-16 shrink-0 bg-[#24211E] text-white border rounded-xs flex flex-col items-center justify-center gap-0.5 transition-all ${
                   isVideoMode
-                    ? "border-[#B08D57] ring-1 ring-[#B08D57]"
+                    ? "border-[#B08D57] ring-2 ring-[#B08D57]/40 shadow-xs"
                     : "border-[#E8E1D8] hover:border-[#B08D57]"
                 }`}
+                aria-label="Play product video"
               >
-                <Play className="w-5 h-5 text-[#B08D57]" />
-                <span className="text-[9px] uppercase tracking-wider text-[#E8D4B0] font-semibold">
-                  360° Video
+                <Play className="w-4 h-4 text-[#B08D57]" />
+                <span className="text-[8px] uppercase tracking-wider text-[#E8D4B0] font-semibold">
+                  Video
                 </span>
               </button>
             )}
           </div>
         </div>
 
-        {/* Right Column: Piece Specifications & Acquisition Actions */}
-        <div className="lg:col-span-5 space-y-6">
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <Badge variant="gold">
-                {product.category?.name || "Haute Jewellery"}
-              </Badge>
-              <span className="text-xs text-[#716B64] font-mono">SKU: {product.sku}</span>
+        {/* Right Column: Balanced, Aligned Information Cards */}
+        <div className="lg:col-span-7 space-y-5">
+          {/* Card 1: Title, Category, SKU & Pricing Overview */}
+          <div className="bg-white border border-[#E8E1D8] p-5 sm:p-6 rounded-xs shadow-xs space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Badge variant="gold">
+                  {product.category?.name || "Haute Jewellery"}
+                </Badge>
+                {Boolean(attributes.collection) && (
+                  <span className="text-xs uppercase tracking-wider text-[#716B64] font-medium px-2 py-0.5 bg-[#FAF8F4] border border-[#E8E1D8]">
+                    {String(attributes.collection)}
+                  </span>
+                )}
+              </div>
+              <span className="text-xs text-[#716B64] font-mono bg-[#FAF8F4] px-2 py-0.5 border border-[#E8E1D8]">
+                SKU: {product.sku}
+              </span>
             </div>
 
-            <h1 className="font-serif text-3xl sm:text-4xl text-[#24211E] font-normal leading-snug">
+            <h1 className="font-serif text-2xl sm:text-3xl text-[#24211E] font-normal leading-snug">
               {product.title}
             </h1>
 
-            {/* Pricing Strip */}
-            <div className="mt-4 flex items-baseline gap-3">
+            {/* Pricing Section */}
+            <div className="flex flex-wrap items-baseline gap-3 pt-2 border-t border-[#F2ECE4]">
               {price > 0 ? (
                 <>
-                  <span className="font-serif text-3xl text-[#24211E] font-medium">
+                  <span className="font-serif text-2xl sm:text-3xl text-[#24211E] font-medium">
                     ${price.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                   {compareAt && compareAt > price && (
-                    <span className="line-through text-base text-[#9E988F] font-sans">
+                    <span className="line-through text-sm sm:text-base text-[#9E988F] font-sans">
                       ${compareAt.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                     </span>
                   )}
@@ -208,7 +230,7 @@ export function ProductDetailView({ product: initialProduct }: ProductDetailView
             </div>
 
             {/* Live Inventory Health Status */}
-            <div className="mt-3 flex items-center gap-2 text-xs">
+            <div className="flex items-center gap-2 text-xs pt-1">
               {isOutOfStock ? (
                 <div className="flex items-center gap-1.5 text-red-600 font-medium">
                   <span className="w-2 h-2 rounded-full bg-red-600" />
@@ -228,34 +250,34 @@ export function ProductDetailView({ product: initialProduct }: ProductDetailView
             </div>
           </div>
 
-          {/* Acquisition Call to Action */}
-          <div className="p-5 bg-[#FAF8F4] border border-[#E8E1D8] space-y-4">
+          {/* Card 2: Acquisition Action Card (Qty + Add to Bag + Buy Now + Guarantees) */}
+          <div className="p-5 sm:p-6 bg-[#FAF8F4] border border-[#E8E1D8] rounded-xs shadow-xs space-y-4">
             {!isOutOfStock && (
               <div className="flex items-center justify-between pb-3 border-b border-[#E8E1D8]">
                 <span className="text-xs font-semibold uppercase tracking-wider text-[#716B64]">
                   Acquisition Quantity:
                 </span>
-                <div className="flex items-center border border-[#D4C9BA] bg-white">
+                <div className="flex items-center border border-[#D4C9BA] bg-white rounded-xs">
                   <button
                     type="button"
                     onClick={() => setSelectedQuantity((q) => Math.max(1, q - 1))}
                     disabled={selectedQuantity <= 1}
-                    className="px-3 py-1 text-xs text-[#716B64] hover:text-[#24211E] disabled:opacity-30 transition-colors"
+                    className="px-3 py-1.5 text-xs text-[#716B64] hover:text-[#24211E] disabled:opacity-30 transition-colors"
                     aria-label="Decrease quantity"
                   >
-                    <Minus className="w-3 h-3" />
+                    <Minus className="w-3.5 h-3.5" />
                   </button>
-                  <span className="px-4 py-1 text-xs font-mono font-bold text-[#24211E]">
+                  <span className="px-4 py-1.5 text-xs font-mono font-bold text-[#24211E]">
                     {selectedQuantity}
                   </span>
                   <button
                     type="button"
                     onClick={() => setSelectedQuantity((q) => Math.min(stockQty, q + 1))}
                     disabled={selectedQuantity >= stockQty}
-                    className="px-3 py-1 text-xs text-[#716B64] hover:text-[#24211E] disabled:opacity-30 transition-colors"
+                    className="px-3 py-1.5 text-xs text-[#716B64] hover:text-[#24211E] disabled:opacity-30 transition-colors"
                     aria-label="Increase quantity"
                   >
-                    <Plus className="w-3 h-3" />
+                    <Plus className="w-3.5 h-3.5" />
                   </button>
                 </div>
               </div>
@@ -280,7 +302,7 @@ export function ProductDetailView({ product: initialProduct }: ProductDetailView
                     selectedQuantity
                   );
                 }}
-                className="gap-2 text-xs tracking-wider uppercase font-semibold py-5 border-[#B08D57] text-[#24211E] hover:bg-white"
+                className="gap-2 text-xs tracking-wider uppercase font-semibold py-4 border-[#B08D57] text-[#24211E] hover:bg-white"
               >
                 <ShoppingBag className="w-4 h-4 text-[#B08D57]" />
                 Add to Bag
@@ -290,81 +312,93 @@ export function ProductDetailView({ product: initialProduct }: ProductDetailView
                 size="lg"
                 disabled={isOutOfStock}
                 onClick={() => setIsCheckoutOpen(true)}
-                className="gap-2 text-xs tracking-wider uppercase font-semibold py-5"
+                className="gap-2 text-xs tracking-wider uppercase font-semibold py-4"
               >
                 <Lock className="w-4 h-4 text-[#B08D57]" />
                 {isOutOfStock ? "Out of Stock" : "Buy Now"}
               </Button>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 text-[11px] text-[#716B64] pt-2 border-t border-[#E8E1D8]">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-[11px] text-[#716B64] pt-3 border-t border-[#E8E1D8]">
               <div className="flex items-center gap-1.5">
-                <ShieldCheck className="w-3.5 h-3.5 text-[#B08D57]" />
-                Insured Global Vault Courier
+                <ShieldCheck className="w-3.5 h-3.5 text-[#B08D57] shrink-0" />
+                <span>Insured Global Courier</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-[#B08D57]" />
-                Certificate of Authenticity
+                <Sparkles className="w-3.5 h-3.5 text-[#B08D57] shrink-0" />
+                <span>Certificate of Authenticity</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <RotateCcw className="w-3.5 h-3.5 text-[#B08D57] shrink-0" />
+                <span>Complimentary 30-Day Returns</span>
               </div>
             </div>
           </div>
 
-          {/* Description */}
+          {/* Card 3: Atelier Notes & Provenance Description Card */}
           {product.description && (
-            <div className="border-t border-[#E8E1D8] pt-4">
-              <h3 className="text-xs uppercase tracking-wider text-[#716B64] font-semibold mb-2">
+            <div className="bg-white border border-[#E8E1D8] p-5 sm:p-6 rounded-xs shadow-xs space-y-2.5">
+              <h3 className="text-xs uppercase tracking-wider text-[#716B64] font-semibold flex items-center gap-2">
+                <Gem className="w-3.5 h-3.5 text-[#B08D57]" />
                 Atelier Notes &amp; Provenance
               </h3>
-              <p className="text-sm text-[#24211E] leading-relaxed font-sans">
+              <p className="text-sm text-[#3E3A36] leading-relaxed font-sans">
                 {product.description}
               </p>
             </div>
           )}
 
-          {/* Technical Specifications */}
-          <div className="border-t border-[#E8E1D8] pt-4">
-            <h3 className="text-xs uppercase tracking-wider text-[#716B64] font-semibold mb-3">
+          {/* Card 4: Craftsmanship Specifications Card */}
+          <div className="bg-white border border-[#E8E1D8] p-5 sm:p-6 rounded-xs shadow-xs space-y-3">
+            <h3 className="text-xs uppercase tracking-wider text-[#716B64] font-semibold flex items-center gap-2">
+              <Sparkles className="w-3.5 h-3.5 text-[#B08D57]" />
               Craftsmanship Specifications
             </h3>
-            <div className="border border-[#E8E1D8] divide-y divide-[#E8E1D8] bg-white text-xs">
-              <div className="grid grid-cols-2 p-2.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+              <div className="p-2.5 bg-[#FAF8F4] border border-[#E8E1D8] flex justify-between items-center">
                 <span className="text-[#716B64]">House Identifier</span>
-                <span className="font-mono text-[#24211E]">{product.sku}</span>
+                <span className="font-mono text-[#24211E] font-medium">{product.sku}</span>
               </div>
               {Boolean(attributes.metal_type) && (
-                <div className="grid grid-cols-2 p-2.5">
+                <div className="p-2.5 bg-[#FAF8F4] border border-[#E8E1D8] flex justify-between items-center">
                   <span className="text-[#716B64]">Metal Composition</span>
-                  <span className="text-[#24211E]">{String(attributes.metal_type)}</span>
+                  <span className="text-[#24211E] font-medium">{String(attributes.metal_type)}</span>
                 </div>
               )}
               {Boolean(attributes.purity) && (
-                <div className="grid grid-cols-2 p-2.5">
+                <div className="p-2.5 bg-[#FAF8F4] border border-[#E8E1D8] flex justify-between items-center">
                   <span className="text-[#716B64]">Finishing Purity</span>
-                  <span className="text-[#24211E]">{String(attributes.purity)}</span>
+                  <span className="text-[#24211E] font-medium">{String(attributes.purity)}</span>
                 </div>
               )}
               {Boolean(attributes.gemstone_type) && (
-                <div className="grid grid-cols-2 p-2.5">
+                <div className="p-2.5 bg-[#FAF8F4] border border-[#E8E1D8] flex justify-between items-center">
                   <span className="text-[#716B64]">Natural Gemstones</span>
-                  <span className="text-[#24211E]">{String(attributes.gemstone_type)}</span>
+                  <span className="text-[#24211E] font-medium">{String(attributes.gemstone_type)}</span>
                 </div>
               )}
               {Boolean(attributes.stone_weight) && (
-                <div className="grid grid-cols-2 p-2.5">
+                <div className="p-2.5 bg-[#FAF8F4] border border-[#E8E1D8] flex justify-between items-center">
                   <span className="text-[#716B64]">Carat Total</span>
-                  <span className="text-[#24211E]">{String(attributes.stone_weight)} ct</span>
+                  <span className="text-[#24211E] font-medium">{String(attributes.stone_weight)} ct</span>
                 </div>
               )}
               {Boolean(attributes.gross_weight) && (
-                <div className="grid grid-cols-2 p-2.5">
+                <div className="p-2.5 bg-[#FAF8F4] border border-[#E8E1D8] flex justify-between items-center">
                   <span className="text-[#716B64]">Gross Weight</span>
-                  <span className="text-[#24211E]">{String(attributes.gross_weight)} g</span>
+                  <span className="text-[#24211E] font-medium">{String(attributes.gross_weight)} g</span>
+                </div>
+              )}
+              {Boolean(attributes.design_style) && (
+                <div className="p-2.5 bg-[#FAF8F4] border border-[#E8E1D8] flex justify-between items-center">
+                  <span className="text-[#716B64]">Design Style</span>
+                  <span className="text-[#24211E] font-medium">{String(attributes.design_style)}</span>
                 </div>
               )}
               {Boolean(attributes.occasion) && (
-                <div className="grid grid-cols-2 p-2.5">
+                <div className="p-2.5 bg-[#FAF8F4] border border-[#E8E1D8] flex justify-between items-center">
                   <span className="text-[#716B64]">Occasion Suite</span>
-                  <span className="text-[#24211E]">{String(attributes.occasion)}</span>
+                  <span className="text-[#24211E] font-medium">{String(attributes.occasion)}</span>
                 </div>
               )}
             </div>

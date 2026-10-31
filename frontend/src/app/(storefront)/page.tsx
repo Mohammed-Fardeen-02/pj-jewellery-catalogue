@@ -6,6 +6,7 @@ import { ProductCard } from "@/components/storefront/product-card";
 import { CategoryCard } from "@/components/storefront/category-card";
 import { productApi } from "@/features/products/api/product.api";
 import { categoryApi } from "@/features/categories/api/category.api";
+import { StorefrontCatalogueExplorer } from "@/components/storefront/storefront-catalogue-explorer";
 import type { CategoryPublicResponse } from "@/features/categories/types/category.types";
 import type { ProductPublicResponse } from "@/features/products/types/product.types";
 
@@ -16,7 +17,7 @@ export default async function StorefrontHomePage() {
 
   try {
     const [productsRes, categoriesRes] = await Promise.all([
-      productApi.listPublic({ limit: 8 }),
+      productApi.listPublic({ limit: 50 }),
       categoryApi.listPublic(),
     ]);
     products = productsRes.items || [];
@@ -118,68 +119,9 @@ export default async function StorefrontHomePage() {
         </div>
       </section>
 
-      {/* 2. Featured Collections / Categories */}
-      {categories.length > 0 && (
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 pb-4 border-b border-[#E8E1D8]">
-            <div>
-              <span className="text-[11px] tracking-[0.25em] uppercase text-[#B08D57] font-semibold block mb-1">
-                Curated Collections
-              </span>
-              <h2 className="font-serif text-3xl sm:text-4xl text-[#24211E]">
-                Browse by Category
-              </h2>
-            </div>
-            <Link
-              href="/products"
-              className="text-xs uppercase tracking-widest text-[#716B64] hover:text-[#B08D57] font-semibold mt-3 md:mt-0 transition-colors"
-            >
-              All Pieces &rarr;
-            </Link>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {categories.map((category) => (
-              <CategoryCard key={category.id} category={category as any} />
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* 3. Featured Products Showcase */}
+      {/* 2. Interactive Catalogue Explorer with Horizontal Category Badges & Live Search */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 pb-4 border-b border-[#E8E1D8]">
-          <div>
-            <span className="text-[11px] tracking-[0.25em] uppercase text-[#B08D57] font-semibold block mb-1">
-              Live Atelier Catalogue
-            </span>
-            <h2 className="font-serif text-3xl sm:text-4xl text-[#24211E]">
-              Published Masterpieces
-            </h2>
-          </div>
-          <Link
-            href="/products"
-            className="text-xs uppercase tracking-widest text-[#716B64] hover:text-[#B08D57] font-semibold mt-3 md:mt-0 transition-colors"
-          >
-            Explore All ({products.length}) &rarr;
-          </Link>
-        </div>
-
-        {products.length === 0 ? (
-          <div className="text-center py-16 bg-white border border-[#E8E1D8] p-8">
-            <Gem className="w-8 h-8 text-[#B08D57] mx-auto mb-3 opacity-60" />
-            <h3 className="font-serif text-xl text-[#24211E]">Atelier Collection Initializing</h3>
-            <p className="text-sm text-[#716B64] mt-1">
-              New pieces are currently being catalogued in the master vault.
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {products.slice(0, 8).map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
-        )}
+        <StorefrontCatalogueExplorer categories={categories} initialProducts={products} />
       </section>
 
       {/* 4. Brand Heritage & Story */}

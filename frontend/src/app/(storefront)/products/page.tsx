@@ -1,8 +1,10 @@
+import * as React from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Gem } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { ProductCard } from "@/components/storefront/product-card";
+import { ProductCatalogFilterBar } from "@/components/storefront/product-catalog-filter-bar";
 import { productApi } from "@/features/products/api/product.api";
 import { categoryApi } from "@/features/categories/api/category.api";
 import type { ProductPublicResponse } from "@/features/products/types/product.types";
@@ -62,41 +64,10 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
         }
       />
 
-      {/* Category Pills & Filters */}
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#E8E1D8] pb-4">
-        <div className="flex flex-wrap items-center gap-2">
-          <Link
-            href="/products"
-            className={`px-3.5 py-1.5 text-xs uppercase tracking-wider font-semibold transition-all ${
-              !selectedCategorySlug
-                ? "bg-[#24211E] text-white"
-                : "bg-white text-[#716B64] border border-[#E8E1D8] hover:border-[#B08D57]"
-            }`}
-          >
-            All Pieces ({total})
-          </Link>
-          {categories.map((cat) => {
-            const isActive = selectedCategorySlug === cat.slug;
-            return (
-              <Link
-                key={cat.id}
-                href={`/products?category=${cat.slug}`}
-                className={`px-3.5 py-1.5 text-xs uppercase tracking-wider font-semibold transition-all ${
-                  isActive
-                    ? "bg-[#24211E] text-white"
-                    : "bg-white text-[#716B64] border border-[#E8E1D8] hover:border-[#B08D57]"
-                }`}
-              >
-                {cat.name}
-              </Link>
-            );
-          })}
-        </div>
-
-        <span className="text-xs text-[#716B64] italic">
-          Single-Brand Private Collection &middot; {total} available
-        </span>
-      </div>
+      {/* Search Bar & Category Badges Filter Bar */}
+      <React.Suspense fallback={<div className="h-16 bg-white border border-[#E8E1D8] animate-pulse" />}>
+        <ProductCatalogFilterBar categories={categories} totalCount={total} />
+      </React.Suspense>
 
       {/* Grid */}
       {products.length === 0 ? (
