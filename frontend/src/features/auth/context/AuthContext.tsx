@@ -16,46 +16,39 @@ export interface AuthContextValue extends AuthState {
 export const AuthContext = React.createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [tokens, setTokens] = React.useState<AuthTokens | null>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const saved = localStorage.getItem(STORAGE_KEY_TOKENS);
-        return saved ? JSON.parse(saved) : null;
-      } catch {
-        return null;
-      }
-    }
-    return null;
-  });
-
-  const [user, setUser] = React.useState<UserProfile | null>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const saved = localStorage.getItem(STORAGE_KEY_USER);
-        return saved ? JSON.parse(saved) : null;
-      } catch {
-        return null;
-      }
-    }
-    return null;
-  });
-
+  const [tokens, setTokens] = React.useState<AuthTokens | null>(null);
+  const [user, setUser] = React.useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
 
   // Sync session & verify active profile on initial mount
   React.useEffect(() => {
+    let activeTokens: AuthTokens | null = null;
+    try {
+      const savedTokens = localStorage.getItem(STORAGE_KEY_TOKENS);
+      if (savedTokens) {
+        activeTokens = JSON.parse(savedTokens);
+        setTokens(activeTokens);
+      }
+      const savedUser = localStorage.getItem(STORAGE_KEY_USER);
+      if (savedUser) {
+        setUser(JSON.parse(savedUser));
+      }
+    } catch {
+      // Ignore localStorage errors
+    }
+
     async function restoreSession() {
-      if (!tokens?.access_token) return;
+      if (!activeTokens?.access_token) return;
 
       try {
-        const profile = await authApi.getProfile(tokens.access_token);
+        const profile = await authApi.getProfile(activeTokens.access_token);
         setUser(profile);
         localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(profile));
       } catch (err) {
         // If access token is expired, attempt token refresh with refresh_token
-        if (tokens.refresh_token) {
+        if (activeTokens.refresh_token) {
           try {
-            const refreshed = await authApi.refreshToken(tokens.refresh_token);
+            const refreshed = await authApi.refreshToken(activeTokens.refresh_token);
             setTokens(refreshed);
             localStorage.setItem(STORAGE_KEY_TOKENS, JSON.stringify(refreshed));
             const profile = await authApi.getProfile(refreshed.access_token);

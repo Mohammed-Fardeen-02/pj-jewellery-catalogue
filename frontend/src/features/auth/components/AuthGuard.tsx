@@ -17,14 +17,19 @@ export function AuthGuard({
 }: AuthGuardProps) {
   const router = useRouter();
   const { isAuthenticated, isLoading } = useAuth();
+  const [isMounted, setIsMounted] = React.useState(false);
 
   React.useEffect(() => {
-    if (!isLoading && !isAuthenticated && redirectTo) {
+    setIsMounted(true);
+  }, []);
+
+  React.useEffect(() => {
+    if (isMounted && !isLoading && !isAuthenticated && redirectTo) {
       router.replace(redirectTo);
     }
-  }, [isLoading, isAuthenticated, redirectTo, router]);
+  }, [isMounted, isLoading, isAuthenticated, redirectTo, router]);
 
-  if (isLoading) {
+  if (!isMounted || isLoading) {
     return (
       fallback ?? (
         <div className="min-h-screen flex items-center justify-center bg-[#FAF8F4]">
