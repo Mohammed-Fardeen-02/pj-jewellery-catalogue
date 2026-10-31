@@ -64,6 +64,7 @@ export function ProductSearchSelect({
                   src={selectedProduct.primary_image?.image_url || selectedProduct.images![0].image_url}
                   alt={selectedProduct.title}
                   fill
+                  sizes="48px"
                   className="object-cover"
                 />
               ) : (
@@ -152,7 +153,7 @@ export function ProductSearchSelect({
                       <div className="flex items-center gap-3">
                         <div className="relative w-10 h-10 bg-[#FAF8F4] rounded border border-[#E8E1D8] overflow-hidden flex items-center justify-center shrink-0">
                           {imgUrl ? (
-                            <Image src={imgUrl} alt={product.title} fill className="object-cover" />
+                            <Image src={imgUrl} alt={product.title} fill sizes="40px" className="object-cover" />
                           ) : (
                             <Sparkles className="w-4 h-4 text-[#B08D57]" />
                           )}

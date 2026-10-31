@@ -208,6 +208,7 @@ export const ProductAiSidebarCard: React.FC<ProductAiSidebarCardProps> = ({
                       src={primaryImage.image_url}
                       alt="Primary jewellery piece"
                       fill
+                      sizes="(max-width: 1024px) 100vw, 384px"
                       className="object-contain"
                       unoptimized
                     />

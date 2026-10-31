@@ -163,7 +163,7 @@ export function InstantCheckoutModal({
             {/* Product Summary Strip */}
             <div className="flex items-center gap-4 p-3 bg-[#FAF8F4] border border-[#E8E1D8]">
               <div className="relative w-16 h-16 bg-white border border-[#E8E1D8] overflow-hidden flex-shrink-0">
-                <Image src={imageSrc} alt={product.title} fill className="object-cover" />
+                <Image src={imageSrc} alt={product.title} fill sizes="64px" className="object-cover" />
               </div>
               <div className="flex-1 min-w-0">
                 <h4 className="font-serif text-sm text-[#24211E] truncate">{product.title}</h4>

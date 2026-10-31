@@ -175,6 +175,7 @@ export const MultiImageUploader: React.FC<MultiImageUploaderProps> = ({
                   src={item.image_url}
                   alt={item.alt_text || "Piece preview"}
                   fill
+                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 200px"
                   className="object-cover"
                 />
                 {item.is_primary && (

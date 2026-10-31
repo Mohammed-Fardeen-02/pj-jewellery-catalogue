@@ -205,6 +205,7 @@ export function StockOverviewPage() {
                               src={heroImg.image_url}
                               alt={p.title}
                               fill
+                              sizes="44px"
                               className="object-cover"
                             />
                           ) : (

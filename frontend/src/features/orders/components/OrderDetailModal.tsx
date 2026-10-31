@@ -136,6 +136,7 @@ export function OrderDetailModal({ order, isOpen, onClose }: OrderDetailModalPro
                           src={item.image_url}
                           alt={item.product_title}
                           fill
+                          sizes="48px"
                           className="object-cover"
                         />
                       ) : (

@@ -270,7 +270,7 @@ export function StorefrontCheckoutModal({
                     <div className="flex items-center gap-2 min-w-0">
                       <div className="relative w-9 h-9 bg-white border border-[#E8E1D8] overflow-hidden shrink-0">
                         {item.image_url ? (
-                          <Image src={item.image_url} alt={item.title} fill className="object-cover" />
+                          <Image src={item.image_url} alt={item.title} fill sizes="36px" className="object-cover" />
                         ) : (
                           <Sparkles className="w-4 h-4 text-[#B08D57] m-auto" />
                         )}

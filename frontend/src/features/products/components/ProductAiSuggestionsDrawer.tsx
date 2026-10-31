@@ -175,6 +175,7 @@ export function ProductAiSuggestionsDrawer({
                     src={imageUrl}
                     alt="Analyzed Piece"
                     fill
+                    sizes="64px"
                     unoptimized={imageUrl.startsWith("/images/") || imageUrl.endsWith(".svg")}
                     className="object-cover"
                   />

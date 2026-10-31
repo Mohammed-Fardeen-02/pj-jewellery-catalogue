@@ -337,6 +337,7 @@ export default function AdminProductsPage() {
                                 src={heroImage.image_url}
                                 alt={product.title}
                                 fill
+                                sizes="44px"
                                 className="object-cover"
                               />
                             ) : (

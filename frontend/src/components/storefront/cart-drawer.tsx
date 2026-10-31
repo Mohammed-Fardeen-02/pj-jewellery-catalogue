@@ -111,6 +111,7 @@ export function CartDrawer() {
                             src={item.image_url}
                             alt={item.title}
                             fill
+                            sizes="80px"
                             unoptimized={item.image_url.startsWith("/images/") || item.image_url.endsWith(".svg")}
                             className="object-cover group-hover:scale-105 transition-transform duration-300"
                           />

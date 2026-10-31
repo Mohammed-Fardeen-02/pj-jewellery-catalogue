@@ -143,6 +143,7 @@ export function ProductDetailView({ product: initialProduct }: ProductDetailView
                     src={src}
                     alt="Thumbnail"
                     fill
+                    sizes="80px"
                     unoptimized={src.startsWith("/images/") || src.endsWith(".svg")}
                     className="object-cover"
                   />

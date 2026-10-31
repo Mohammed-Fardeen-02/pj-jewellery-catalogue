@@ -133,6 +133,7 @@ export const ViewProductModal: React.FC<ViewProductModalProps> = ({
                   src={activeImage.image_url}
                   alt={activeImage.alt_text || product.title}
                   fill
+                  sizes="(max-width: 768px) 100vw, 320px"
                   className="object-cover"
                 />
               ) : (
@@ -161,6 +162,7 @@ export const ViewProductModal: React.FC<ViewProductModalProps> = ({
                       src={img.image_url}
                       alt={img.alt_text || "Thumbnail"}
                       fill
+                      sizes="64px"
                       className="object-cover"
                     />
                   </button>
