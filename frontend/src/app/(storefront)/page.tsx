@@ -95,6 +95,7 @@ export default async function StorefrontHomePage() {
                     alt={heroProduct?.title || "PJ High Jewellery Signature Solitaire"}
                     fill
                     priority
+                    unoptimized={heroImage.startsWith("/images/") || heroImage.endsWith(".svg")}
                     sizes="(max-width: 768px) 100vw, 50vw"
                     className="object-cover group-hover:scale-105 transition-transform duration-700"
                   />

@@ -106,6 +106,7 @@ export function ProductDetailView({ product: initialProduct }: ProductDetailView
                   alt={activeImage?.alt_text || product.title}
                   fill
                   priority
+                  unoptimized={activeImageSrc.startsWith("/images/") || activeImageSrc.endsWith(".svg")}
                   sizes="(max-width: 1024px) 100vw, 60vw"
                   className="object-contain p-4"
                 />
@@ -138,7 +139,13 @@ export function ProductDetailView({ product: initialProduct }: ProductDetailView
                       : "border-[#E8E1D8] hover:border-[#B08D57]/60"
                   }`}
                 >
-                  <Image src={src} alt="Thumbnail" fill className="object-cover" />
+                  <Image
+                    src={src}
+                    alt="Thumbnail"
+                    fill
+                    unoptimized={src.startsWith("/images/") || src.endsWith(".svg")}
+                    className="object-cover"
+                  />
                 </button>
               );
             })}
