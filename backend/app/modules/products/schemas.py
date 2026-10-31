@@ -93,6 +93,11 @@ class ProductCreate(BaseModel):
         default=ProductStatus.DRAFT, description="Initial lifecycle status"
     )
     is_active: bool = Field(default=True, description="Active status for catalogue display")
+    price: float = Field(default=0.0, ge=0, description="Selling price")
+    compare_at_price: float | None = Field(default=None, ge=0, description="Original price before discount")
+    discount_percentage: float | None = Field(default=None, ge=0, le=100, description="Calculated discount percentage")
+    stock_quantity: int = Field(default=0, ge=0, description="Available inventory count")
+    low_stock_threshold: int = Field(default=5, ge=0, description="Alert threshold for low inventory")
     video_url: str | None = Field(
         default=None, max_length=512, description="Cloudinary video URL (max 1 video)"
     )
@@ -114,7 +119,13 @@ class ProductUpdate(BaseModel):
     tags: list[str] | None = None
     keywords: list[str] | None = None
     attributes: dict[str, Any] | None = None
+    status: ProductStatus | None = None
     is_active: bool | None = None
+    price: float | None = Field(default=None, ge=0)
+    compare_at_price: float | None = Field(default=None, ge=0)
+    discount_percentage: float | None = Field(default=None, ge=0, le=100)
+    stock_quantity: int | None = Field(default=None, ge=0)
+    low_stock_threshold: int | None = Field(default=None, ge=0)
     video_url: str | None = Field(default=None, max_length=512)
     images: list[ProductImageCreate] | None = Field(default=None, max_length=5)
 
@@ -156,6 +167,11 @@ class ProductResponse(BaseModel):
     status: ProductStatus
     is_published: bool
     is_active: bool
+    price: float = 0.0
+    compare_at_price: float | None = None
+    discount_percentage: float | None = None
+    stock_quantity: int = 0
+    low_stock_threshold: int = 5
     video_url: str | None = None
     primary_image: ProductImageResponse | None = None
     images: list[ProductImageResponse] = Field(default_factory=list)
@@ -182,14 +198,22 @@ class ProductPublicResponse(BaseModel):
     id: uuid.UUID
     title: str
     slug: str
+    sku: str
     description: str | None = None
     category: ProductCategorySummary | None = None
     tags: list[str] = Field(default_factory=list)
     attributes: dict[str, Any] = Field(default_factory=dict)
+    price: float = 0.0
+    compare_at_price: float | None = None
+    discount_percentage: float | None = None
+    stock_quantity: int = 0
     video_url: str | None = None
     primary_image: ProductImageResponse | None = None
     images: list[ProductImageResponse] = Field(default_factory=list)
     created_at: datetime
+    status: ProductStatus = ProductStatus.PUBLISHED
+    is_published: bool = True
+    is_active: bool = True
 
     model_config = ConfigDict(from_attributes=True)
 

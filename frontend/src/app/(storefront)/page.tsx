@@ -1,24 +1,47 @@
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowRight, Sparkles, Gem, ShieldCheck, Compass } from "lucide-react";
+import { ArrowRight, Sparkles, Gem, ShieldCheck, Compass, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ProductCard } from "@/components/storefront/product-card";
 import { CategoryCard } from "@/components/storefront/category-card";
-import { MOCK_CATEGORIES, MOCK_PRODUCTS } from "@/lib/mock-data";
+import { productApi } from "@/features/products/api/product.api";
+import { categoryApi } from "@/features/categories/api/category.api";
+import type { CategoryPublicResponse } from "@/features/categories/types/category.types";
+import type { ProductPublicResponse } from "@/features/products/types/product.types";
 
-export default function StorefrontHomePage() {
-  const featuredProducts = MOCK_PRODUCTS.slice(0, 4);
+
+export default async function StorefrontHomePage() {
+  let products: ProductPublicResponse[] = [];
+  let categories: CategoryPublicResponse[] = [];
+
+  try {
+    const [productsRes, categoriesRes] = await Promise.all([
+      productApi.listPublic({ limit: 8 }),
+      categoryApi.listPublic(),
+    ]);
+    products = productsRes.items || [];
+    categories = categoriesRes || [];
+  } catch (err) {
+    console.error("Storefront data fetch error:", err);
+  }
+
+  // Pick top hero highlight
+  const heroProduct = products.length > 0 ? products[0] : null;
+  const heroImage =
+    heroProduct?.primary_image?.image_url ||
+    (heroProduct?.images && heroProduct.images[0]?.image_url) ||
+    "/images/hero-jewellery.svg";
 
   return (
     <div className="space-y-24 pb-24">
       {/* 1. Hero Section */}
       <section className="relative overflow-hidden bg-gradient-to-b from-[#F7F2EB] to-[#FAF8F4] border-b border-[#E8E1D8]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-32">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-28">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
             <div className="lg:col-span-7 space-y-6 text-center lg:text-left">
               <div className="inline-flex items-center gap-2 px-3.5 py-1 bg-white border border-[#E8E1D8] text-[11px] uppercase tracking-[0.2em] text-[#B08D57] font-semibold">
                 <Sparkles className="w-3.5 h-3.5 text-[#B08D57]" />
-                Atelier PJ Catalogue
+                Atelier PJ Fine Catalogue
               </div>
 
               <h1 className="font-serif text-4xl sm:text-6xl lg:text-7xl text-[#24211E] tracking-tight font-normal leading-[1.08]">
@@ -27,21 +50,23 @@ export default function StorefrontHomePage() {
               </h1>
 
               <p className="text-sm sm:text-base text-[#716B64] max-w-xl mx-auto lg:mx-0 font-sans leading-relaxed">
-                Discover the private fine jewellery collection of PJ. Every piece is an architectural dialogue between rare natural gems and meticulous handcrafted metalwork.
+                Discover the private fine jewellery collection of PJ. Every piece is an architectural dialogue between rare natural gems, ethical sourcing, and meticulous handcrafted metalwork.
               </p>
 
               <div className="pt-2 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
                 <Link href="/products">
                   <Button size="lg" className="w-full sm:w-auto">
-                    Explore Catalogue
+                    Explore Catalogue ({products.length} Pieces)
                     <ArrowRight className="w-4 h-4 ml-1.5" />
                   </Button>
                 </Link>
-                <Link href="/categories/rings">
-                  <Button variant="outline" size="lg" className="w-full sm:w-auto bg-white/50">
-                    Bespoke Rings
-                  </Button>
-                </Link>
+                {categories.length > 0 && (
+                  <Link href={`/products?category=${categories[0].slug}`}>
+                    <Button variant="outline" size="lg" className="w-full sm:w-auto bg-white/50">
+                      {categories[0].name}
+                    </Button>
+                  </Link>
+                )}
               </div>
 
               {/* Trust Indicators */}
@@ -63,15 +88,28 @@ export default function StorefrontHomePage() {
 
             {/* Hero Artwork Showcase */}
             <div className="lg:col-span-5 relative">
-              <div className="relative aspect-4/3 sm:aspect-square w-full max-w-lg mx-auto border border-[#E8E1D8] bg-white p-3 shadow-sm">
+              <div className="relative aspect-4/3 sm:aspect-square w-full max-w-lg mx-auto border border-[#E8E1D8] bg-white p-3 shadow-md group">
                 <div className="relative w-full h-full bg-[#FAF8F4] overflow-hidden">
                   <Image
-                    src="/images/hero-jewellery.svg"
-                    alt="PJ High Jewellery Signature Solitaire"
+                    src={heroImage}
+                    alt={heroProduct?.title || "PJ High Jewellery Signature Solitaire"}
                     fill
                     priority
-                    className="object-contain p-4"
+                    sizes="(max-width: 768px) 100vw, 50vw"
+                    className="object-cover group-hover:scale-105 transition-transform duration-700"
                   />
+                  {heroProduct && (
+                    <div className="absolute bottom-0 inset-x-0 p-4 bg-gradient-to-t from-black/80 via-black/40 to-transparent text-white">
+                      <span className="text-[10px] uppercase tracking-widest text-[#E8D4B0] block">Featured Masterpiece</span>
+                      <h3 className="font-serif text-base font-normal truncate">{heroProduct.title}</h3>
+                      <div className="flex items-center justify-between mt-1">
+                        <span className="text-sm font-semibold">${Number(heroProduct.price || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
+                        <Link href={`/products/${heroProduct.slug}`} className="text-xs text-[#E8D4B0] underline hover:text-white transition-colors">
+                          View Details &rarr;
+                        </Link>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -80,55 +118,67 @@ export default function StorefrontHomePage() {
       </section>
 
       {/* 2. Featured Collections / Categories */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 pb-4 border-b border-[#E8E1D8]">
-          <div>
-            <span className="text-[11px] tracking-[0.25em] uppercase text-[#B08D57] font-semibold block mb-1">
-              Curated Masterworks
-            </span>
-            <h2 className="font-serif text-3xl sm:text-4xl text-[#24211E]">
-              Browse by Category
-            </h2>
+      {categories.length > 0 && (
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 pb-4 border-b border-[#E8E1D8]">
+            <div>
+              <span className="text-[11px] tracking-[0.25em] uppercase text-[#B08D57] font-semibold block mb-1">
+                Curated Collections
+              </span>
+              <h2 className="font-serif text-3xl sm:text-4xl text-[#24211E]">
+                Browse by Category
+              </h2>
+            </div>
+            <Link
+              href="/products"
+              className="text-xs uppercase tracking-widest text-[#716B64] hover:text-[#B08D57] font-semibold mt-3 md:mt-0 transition-colors"
+            >
+              All Pieces &rarr;
+            </Link>
           </div>
-          <Link
-            href="/products"
-            className="text-xs uppercase tracking-widest text-[#716B64] hover:text-[#B08D57] font-semibold mt-3 md:mt-0 transition-colors"
-          >
-            All Collections &rarr;
-          </Link>
-        </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {MOCK_CATEGORIES.map((category) => (
-            <CategoryCard key={category.id} category={category} />
-          ))}
-        </div>
-      </section>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {categories.map((category) => (
+              <CategoryCard key={category.id} category={category as any} />
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* 3. Featured Products Showcase */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 pb-4 border-b border-[#E8E1D8]">
           <div>
             <span className="text-[11px] tracking-[0.25em] uppercase text-[#B08D57] font-semibold block mb-1">
-              Current Selection
+              Live Atelier Catalogue
             </span>
             <h2 className="font-serif text-3xl sm:text-4xl text-[#24211E]">
-              Signature Catalogue Pieces
+              Published Masterpieces
             </h2>
           </div>
           <Link
             href="/products"
             className="text-xs uppercase tracking-widest text-[#716B64] hover:text-[#B08D57] font-semibold mt-3 md:mt-0 transition-colors"
           >
-            View All ({MOCK_PRODUCTS.length}) &rarr;
+            Explore All ({products.length}) &rarr;
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {featuredProducts.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
+        {products.length === 0 ? (
+          <div className="text-center py-16 bg-white border border-[#E8E1D8] p-8">
+            <Gem className="w-8 h-8 text-[#B08D57] mx-auto mb-3 opacity-60" />
+            <h3 className="font-serif text-xl text-[#24211E]">Atelier Collection Initializing</h3>
+            <p className="text-sm text-[#716B64] mt-1">
+              New pieces are currently being catalogued in the master vault.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {products.slice(0, 8).map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+        )}
       </section>
 
       {/* 4. Brand Heritage & Story */}
@@ -163,25 +213,6 @@ export default function StorefrontHomePage() {
               </div>
             </div>
           </div>
-        </div>
-      </section>
-
-      {/* 5. Phase 1 Architecture Notice */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="p-6 bg-[#F6F3EE] border border-[#E8E1D8] text-xs text-[#716B64] flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div>
-            <strong className="text-[#24211E] uppercase tracking-wider block font-semibold mb-0.5">
-              Frontend Foundation Status
-            </strong>
-            <span>
-              This storefront demonstrates typography, layout, design tokens, and typed models. Products shown are illustrative mock data awaiting Catalogue Domain Milestone backend activation.
-            </span>
-          </div>
-          <Link href="/admin/login" className="shrink-0">
-            <Button variant="outline" size="sm" className="bg-white">
-              Inspect Admin Shell
-            </Button>
-          </Link>
         </div>
       </section>
     </div>

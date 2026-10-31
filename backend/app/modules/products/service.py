@@ -77,6 +77,11 @@ class ProductService:
             status=product.status,
             is_published=product.is_published,
             is_active=product.is_active,
+            price=float(product.price or 0.0),
+            compare_at_price=float(product.compare_at_price) if product.compare_at_price is not None else None,
+            discount_percentage=float(product.discount_percentage) if product.discount_percentage is not None else None,
+            stock_quantity=int(product.stock_quantity or 0),
+            low_stock_threshold=int(product.low_stock_threshold if product.low_stock_threshold is not None else 5),
             video_url=product.video_url,
             primary_image=primary_image,
             images=image_responses,
@@ -114,14 +119,22 @@ class ProductService:
             id=product.id,
             title=product.title,
             slug=product.slug,
+            sku=product.sku,
             description=product.description,
             category=category_summary,
             tags=product.tags or [],
             attributes=product.attributes or {},
+            price=float(product.price or 0.0),
+            compare_at_price=float(product.compare_at_price) if product.compare_at_price is not None else None,
+            discount_percentage=float(product.discount_percentage) if product.discount_percentage is not None else None,
+            stock_quantity=int(product.stock_quantity or 0),
             video_url=product.video_url,
             primary_image=primary_image,
             images=image_responses,
             created_at=product.created_at,
+            status=product.status,
+            is_published=product.is_published,
+            is_active=product.is_active,
         )
 
     async def create_product(self, payload: ProductCreate) -> ProductResponse:
@@ -171,7 +184,14 @@ class ProductService:
         cleaned_tags = list(dict.fromkeys(t.strip() for t in payload.tags if t.strip()))
         cleaned_keywords = list(dict.fromkeys(k.strip() for k in payload.keywords if k.strip()))
 
-        # 6. Build entity
+        # 6. Resolve pricing & discounts
+        price = float(payload.price or 0.0)
+        compare_at = float(payload.compare_at_price) if payload.compare_at_price is not None else None
+        discount_pct = float(payload.discount_percentage) if payload.discount_percentage is not None else None
+        if discount_pct is None and compare_at and compare_at > price and compare_at > 0:
+            discount_pct = round(((compare_at - price) / compare_at) * 100, 2)
+
+        # 7. Build entity
         is_published = payload.status == ProductStatus.PUBLISHED
         product = Product(
             sku=resolved_sku,
@@ -185,10 +205,15 @@ class ProductService:
             status=payload.status,
             is_published=is_published,
             is_active=payload.is_active,
+            price=price,
+            compare_at_price=compare_at,
+            discount_percentage=discount_pct,
+            stock_quantity=int(payload.stock_quantity or 0),
+            low_stock_threshold=int(payload.low_stock_threshold if payload.low_stock_threshold is not None else 5),
             video_url=payload.video_url.strip() if payload.video_url else None,
         )
 
-        # 7. Associate images (max 5)
+        # 8. Associate images (max 5)
         for idx, img_in in enumerate(payload.images):
             image = ProductImage(
                 storage_path=img_in.image_url.strip(),
@@ -264,6 +289,18 @@ class ProductService:
                     )
             product.is_active = payload.is_active
 
+        # Update lifecycle status
+        if payload.status is not None:
+            if payload.status == ProductStatus.PUBLISHED and product.category_id:
+                cat_tuple = await self.category_repo.get_by_id(product.category_id)
+                if cat_tuple and not cat_tuple[0].is_active:
+                    raise BadRequestException(
+                        "Cannot publish product belonging to an inactive category. "
+                        "Activate the category first."
+                    )
+            product.status = payload.status
+            product.is_published = payload.status == ProductStatus.PUBLISHED
+
         # Update video_url
         if payload.video_url is not None:
             product.video_url = payload.video_url.strip() if payload.video_url.strip() else None
@@ -281,6 +318,22 @@ class ProductService:
 
         if payload.attributes is not None:
             product.attributes = payload.attributes
+
+        # Update pricing & discount
+        if payload.price is not None:
+            product.price = float(payload.price)
+        if payload.compare_at_price is not None:
+            product.compare_at_price = float(payload.compare_at_price)
+        if payload.discount_percentage is not None:
+            product.discount_percentage = float(payload.discount_percentage)
+        elif product.compare_at_price and float(product.compare_at_price) > float(product.price) and float(product.compare_at_price) > 0:
+            product.discount_percentage = round(((float(product.compare_at_price) - float(product.price)) / float(product.compare_at_price)) * 100, 2)
+
+        # Update stock metrics
+        if payload.stock_quantity is not None:
+            product.stock_quantity = int(payload.stock_quantity)
+        if payload.low_stock_threshold is not None:
+            product.low_stock_threshold = int(payload.low_stock_threshold)
 
         # Update images if passed explicitly
         if payload.images is not None:

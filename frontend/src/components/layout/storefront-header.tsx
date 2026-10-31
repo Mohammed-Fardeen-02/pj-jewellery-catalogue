@@ -3,19 +3,42 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, X, Shield, Sparkles } from "lucide-react";
+import { Menu, X, Shield, Sparkles, ShoppingBag } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
+import { useCart } from "@/context/cart-context";
+
+import { categoryApi } from "@/features/categories/api/category.api";
+import type { CategoryPublicResponse } from "@/features/categories/types/category.types";
 
 export function StorefrontHeader() {
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
+  const [categories, setCategories] = React.useState<CategoryPublicResponse[]>([]);
   const pathname = usePathname();
+  const { totalItems, openCart } = useCart();
+
+  React.useEffect(() => {
+    let mounted = true;
+    categoryApi
+      .listPublic()
+      .then((cats) => {
+        if (mounted && Array.isArray(cats)) {
+          setCategories(cats);
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to load header categories:", err);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const navigation = [
     { name: "All Jewellery", href: "/products" },
-    { name: "Rings", href: "/categories/rings" },
-    { name: "Necklaces", href: "/categories/necklaces" },
-    { name: "Earrings", href: "/categories/earrings" },
-    { name: "Bracelets", href: "/categories/bracelets" },
+    ...categories.map((cat) => ({
+      name: cat.name,
+      href: `/categories/${cat.slug}`,
+    })),
   ];
 
   return (
@@ -78,8 +101,27 @@ export function StorefrontHeader() {
             })}
           </nav>
 
-          {/* Actions / Admin Link */}
-          <div className="flex items-center space-x-4">
+          {/* Actions: Cart & Admin Link */}
+          <div className="flex items-center space-x-3 sm:space-x-4">
+            <button
+              type="button"
+              onClick={openCart}
+              className="relative p-2 text-[#24211E] hover:text-[#B08D57] transition-colors flex items-center gap-1.5 focus:outline-none"
+              aria-label={`View shopping bag with ${totalItems} items`}
+            >
+              <div className="relative">
+                <ShoppingBag className="w-5 h-5 text-[#24211E]" />
+                {totalItems > 0 && (
+                  <span className="absolute -top-1.5 -right-2 inline-flex items-center justify-center min-w-[17px] h-[17px] px-1 text-[9px] font-bold text-white bg-[#B08D57] rounded-full shadow-xs">
+                    {totalItems}
+                  </span>
+                )}
+              </div>
+              <span className="hidden sm:inline text-xs uppercase tracking-wider font-medium text-[#24211E]">
+                Bag
+              </span>
+            </button>
+
             <Link
               href="/admin/login"
               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] uppercase tracking-wider text-[#716B64] hover:text-[#24211E] border border-[#E8E1D8] hover:border-[#B08D57] transition-colors bg-white/60"
@@ -104,7 +146,21 @@ export function StorefrontHeader() {
               {item.name}
             </Link>
           ))}
-          <div className="pt-2">
+          <div className="pt-2 flex flex-col gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setMobileMenuOpen(false);
+                openCart();
+              }}
+              className="flex items-center justify-between py-2 text-xs uppercase tracking-wider text-[#24211E] border-b border-[#F0EAE2]"
+            >
+              <span className="flex items-center gap-2">
+                <ShoppingBag className="w-4 h-4 text-[#B08D57]" />
+                Shopping Bag
+              </span>
+              <span className="font-bold text-[#B08D57] font-mono">({totalItems})</span>
+            </button>
             <Link
               href="/admin/login"
               onClick={() => setMobileMenuOpen(false)}

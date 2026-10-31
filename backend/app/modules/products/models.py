@@ -2,13 +2,13 @@ import enum
 import uuid
 from typing import TYPE_CHECKING, Any
 
-from sqlalchemy import JSON, Boolean, Enum, ForeignKey, Integer, String, Text, Uuid
+from sqlalchemy import JSON, Boolean, Enum, ForeignKey, Integer, Numeric, String, Text, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin
 
-if TYPE_CHECKING:
-    from app.modules.categories.models import Category
+from app.modules.categories.models import Category
+from app.modules.stock.models import StockTransaction
 
 
 class ProductStatus(enum.StrEnum):
@@ -96,6 +96,29 @@ class Product(Base, TimestampMixin):
         String(512),
         nullable=True,
     )
+    price: Mapped[float] = mapped_column(
+        Numeric(12, 2),
+        default=0.0,
+        nullable=False,
+    )
+    compare_at_price: Mapped[float | None] = mapped_column(
+        Numeric(12, 2),
+        nullable=True,
+    )
+    discount_percentage: Mapped[float | None] = mapped_column(
+        Numeric(5, 2),
+        nullable=True,
+    )
+    stock_quantity: Mapped[int] = mapped_column(
+        Integer,
+        default=0,
+        nullable=False,
+    )
+    low_stock_threshold: Mapped[int] = mapped_column(
+        Integer,
+        default=5,
+        nullable=False,
+    )
 
     # Relationships
     category: Mapped["Category | None"] = relationship(
@@ -108,6 +131,13 @@ class Product(Base, TimestampMixin):
         cascade="all, delete-orphan",
         passive_deletes=True,
         order_by="ProductImage.display_order",
+    )
+    stock_transactions: Mapped[list["StockTransaction"]] = relationship(
+        "StockTransaction",
+        back_populates="product",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        order_by="StockTransaction.created_at.desc()",
     )
 
     def __repr__(self) -> str:

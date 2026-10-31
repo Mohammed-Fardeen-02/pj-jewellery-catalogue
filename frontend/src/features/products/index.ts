@@ -1,6 +1,7 @@
 export { productApi } from "./api/product.api";
 export { ViewProductModal } from "./components/ViewProductModal";
 export { ProductForm } from "./components/ProductForm";
+export { StockAdjustmentModal } from "./components/StockAdjustmentModal";
 export type {
   ProductResponse,
   ProductPublicResponse,

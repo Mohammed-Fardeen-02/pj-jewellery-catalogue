@@ -27,8 +27,10 @@ def upgrade() -> None:
     if bind.dialect.name == "postgresql":
         product_status_enum.create(bind, checkfirst=True)
         status_col_type = product_status_enum
+        keywords_default = sa.text("'[]'::json")
     else:
         status_col_type = sa.String(length=20)
+        keywords_default = sa.text("'[]'")
 
     # 1. Add keywords JSON column to products
     op.add_column(
@@ -37,7 +39,7 @@ def upgrade() -> None:
             "keywords",
             sa.JSON(),
             nullable=False,
-            server_default=sa.text("'[]'::json"),
+            server_default=keywords_default,
         ),
     )
 
@@ -54,9 +56,14 @@ def upgrade() -> None:
     op.create_index(op.f("ix_products_status"), "products", ["status"], unique=False)
 
     # 3. Synchronize existing products: if is_published was True, set status = 'published'
-    op.execute(
-        "UPDATE products SET status = 'published' WHERE is_published = TRUE"
-    )
+    if bind.dialect.name == "postgresql":
+        op.execute(
+            "UPDATE products SET status = 'published' WHERE is_published = TRUE"
+        )
+    else:
+        op.execute(
+            "UPDATE products SET status = 'published' WHERE is_published = 1"
+        )
 
 
 def downgrade() -> None:

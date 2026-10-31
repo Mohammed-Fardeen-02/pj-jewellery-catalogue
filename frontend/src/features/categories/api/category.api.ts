@@ -18,6 +18,10 @@ export const categoryApi = {
     return apiClient.get<CategoryPublicResponse>(ENDPOINTS.public.categoryDetail(slug));
   },
 
+  async getBySlug(slug: string): Promise<CategoryPublicResponse> {
+    return this.getPublicBySlug(slug);
+  },
+
   // Admin Master
   async listAdmin(
     token?: string,

@@ -5,37 +5,51 @@ import { ArrowLeft } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { ProductCard } from "@/components/storefront/product-card";
 import { EmptyState } from "@/components/ui/empty-state";
-import { MOCK_CATEGORIES, MOCK_PRODUCTS } from "@/lib/mock-data";
+import { categoryApi } from "@/features/categories/api/category.api";
+import { productApi } from "@/features/products/api/product.api";
+import type { CategoryPublicResponse } from "@/features/categories/types/category.types";
+import type { ProductPublicResponse } from "@/features/products/types/product.types";
+
 
 interface CategoryPageProps {
   params: Promise<{ slug: string }>;
 }
 
-export function generateStaticParams() {
-  return MOCK_CATEGORIES.map((c) => ({ slug: c.slug }));
-}
-
 export async function generateMetadata({ params }: CategoryPageProps): Promise<Metadata> {
   const { slug } = await params;
-  const category = MOCK_CATEGORIES.find((c) => c.slug === slug);
-  if (!category) return { title: "Category Not Found" };
+  try {
+    const category = await categoryApi.getPublicBySlug(slug);
+    if (!category) return { title: "Category Not Found — PJ Haute Joaillerie" };
 
-  return {
-    title: `${category.name} Collection`,
-    description: category.description || `Browse handcrafted ${category.name} in the PJ Jewellery Catalogue.`,
-  };
+    return {
+      title: `${category.name} Collection — PJ Haute Joaillerie`,
+      description: category.description || `Browse handcrafted ${category.name} in the PJ Jewellery Catalogue.`,
+    };
+  } catch {
+    return { title: "Haute Jewellery Collection — PJ" };
+  }
 }
 
 export default async function CategoryPage({ params }: CategoryPageProps) {
   const { slug } = await params;
-  const category = MOCK_CATEGORIES.find((c) => c.slug === slug);
+
+  let category: CategoryPublicResponse | null = null;
+  let products: ProductPublicResponse[] = [];
+
+  try {
+    const [catRes, prodRes] = await Promise.all([
+      categoryApi.getPublicBySlug(slug),
+      productApi.listPublic({ category_slug: slug, limit: 50 }),
+    ]);
+    category = catRes;
+    products = prodRes?.items || [];
+  } catch (err) {
+    console.error("Failed to load category data for slug:", slug, err);
+  }
 
   if (!category) {
     notFound();
   }
-
-  // Filter products matching category
-  const products = MOCK_PRODUCTS.filter((p) => p.category_id === category.id);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">

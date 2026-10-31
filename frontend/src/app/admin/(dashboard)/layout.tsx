@@ -12,6 +12,9 @@ import {
   ShieldAlert,
   Menu,
   X,
+  Boxes,
+  ShoppingBag,
+  TrendingUp,
 } from "lucide-react";
 import { LogoutButton } from "@/features/auth";
 import { cn } from "@/lib/utils/cn";
@@ -22,6 +25,9 @@ function SidebarNav({ onNavigate }: { onNavigate: () => void }) {
   const navigation = [
     { name: "Overview", href: "/admin", icon: LayoutDashboard },
     { name: "Jewellery Products", href: "/admin/products", icon: Gem },
+    { name: "Vault Stock", href: "/admin/stock", icon: Boxes },
+    { name: "Customer Orders", href: "/admin/orders", icon: ShoppingBag },
+    { name: "Atelier Analytics", href: "/admin/analytics", icon: TrendingUp },
     { name: "Categories Master", href: "/admin/categories", icon: FolderTree },
     { name: "System Settings", href: "/admin/settings", icon: Settings },
   ];

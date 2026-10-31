@@ -10,6 +10,10 @@ import {
   AlertCircle,
   Save,
   ArrowLeft,
+  DollarSign,
+  PackageCheck,
+  Archive,
+  Trash2,
 } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
@@ -18,6 +22,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
+import { ConfirmationModal } from "@/components/ui/confirmation-modal";
 import {
   MultiImageUploader,
   type ManagedImageItem,
@@ -51,7 +56,23 @@ export const ProductForm: React.FC<ProductFormProps> = ({
 
   const [categories, setCategories] = React.useState<CategoryResponse[]>([]);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = React.useState(false);
+  const [isDeleting, setIsDeleting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+
+  const handleDeleteConfirm = async () => {
+    if (!initialProduct) return;
+    setIsDeleting(true);
+    try {
+      await productApi.delete(initialProduct.id, token || undefined);
+      router.push("/admin/products");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to delete piece.");
+      setIsDeleteOpen(false);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   // Form Fields
   const [title, setTitle] = React.useState(initialProduct?.title || "");
@@ -68,6 +89,25 @@ export const ProductForm: React.FC<ProductFormProps> = ({
   );
   const [isActive, setIsActive] = React.useState<boolean>(
     initialProduct?.is_active ?? true
+  );
+
+  // Pricing & Vault Inventory
+  const [price, setPrice] = React.useState<string>(
+    initialProduct?.price !== undefined ? String(initialProduct.price) : ""
+  );
+  const [compareAtPrice, setCompareAtPrice] = React.useState<string>(
+    initialProduct?.compare_at_price ? String(initialProduct.compare_at_price) : ""
+  );
+  const [discountPercentage, setDiscountPercentage] = React.useState<string>(
+    initialProduct?.discount_percentage ? String(initialProduct.discount_percentage) : ""
+  );
+  const [stockQuantity, setStockQuantity] = React.useState<string>(
+    initialProduct?.stock_quantity !== undefined ? String(initialProduct.stock_quantity) : "0"
+  );
+  const [lowStockThreshold, setLowStockThreshold] = React.useState<string>(
+    initialProduct?.low_stock_threshold !== undefined
+      ? String(initialProduct.low_stock_threshold)
+      : "5"
   );
 
   // Media
@@ -198,6 +238,14 @@ export const ProductForm: React.FC<ProductFormProps> = ({
       if (collection.trim()) attributes.collection = collection.trim();
       if (designStyle.trim()) attributes.design_style = designStyle.trim();
 
+      const numPrice = parseFloat(price) || 0;
+      const numCompareAt = compareAtPrice ? parseFloat(compareAtPrice) : undefined;
+      const numDiscount = discountPercentage
+        ? parseFloat(discountPercentage)
+        : numCompareAt && numCompareAt > numPrice && numCompareAt > 0
+        ? Math.round(((numCompareAt - numPrice) / numCompareAt) * 100)
+        : undefined;
+
       const payload: ProductCreatePayload = {
         title: title.trim(),
         slug: slug.trim() || undefined,
@@ -206,6 +254,11 @@ export const ProductForm: React.FC<ProductFormProps> = ({
         description: description.trim() || undefined,
         status: finalStatus,
         is_active: isActive,
+        price: numPrice,
+        compare_at_price: numCompareAt,
+        discount_percentage: numDiscount,
+        stock_quantity: parseInt(stockQuantity, 10) || 0,
+        low_stock_threshold: parseInt(lowStockThreshold, 10) || 5,
         tags,
         keywords,
         attributes,
@@ -227,6 +280,13 @@ export const ProductForm: React.FC<ProductFormProps> = ({
           payload,
           token || undefined
         );
+        if (initialProduct.status !== finalStatus) {
+          savedProduct = await productApi.updateStatus(
+            initialProduct.id,
+            finalStatus,
+            token || undefined
+          );
+        }
       } else {
         savedProduct = await productApi.create(payload, token || undefined);
       }
@@ -353,6 +413,113 @@ export const ProductForm: React.FC<ProductFormProps> = ({
               rows={4}
             />
           </FormField>
+        </CardContent>
+      </Card>
+
+      {/* Card 2: Pricing, Discounts & Vault Inventory */}
+      <Card className="bg-white">
+        <CardContent className="p-6 space-y-4">
+          <div className="flex items-center justify-between pb-2 border-b border-[#E8E1D8]">
+            <div className="flex items-center gap-2">
+              <DollarSign className="w-4 h-4 text-[#B08D57]" />
+              <h3 className="font-serif text-base font-medium text-[#24211E]">
+                Pricing, Discounts &amp; Vault Inventory
+              </h3>
+            </div>
+            {compareAtPrice && parseFloat(compareAtPrice) > (parseFloat(price) || 0) && (
+              <span className="px-2 py-0.5 text-xs font-semibold uppercase tracking-wider bg-emerald-50 text-emerald-800 border border-emerald-200">
+                Discount: -
+                {Math.round(
+                  (((parseFloat(compareAtPrice) || 0) - (parseFloat(price) || 0)) /
+                    (parseFloat(compareAtPrice) || 1)) *
+                    100
+                )}
+                % OFF
+              </span>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <FormField label="Selling Price ($)" required hint="Customer storefront checkout amount">
+              <Input
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="e.g. 12500.00"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                disabled={isSubmitting}
+                className="font-mono text-sm"
+              />
+            </FormField>
+
+            <FormField
+              label="Compare-At / Original Price ($)"
+              hint="Shown as strike-through price if discounted"
+            >
+              <Input
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="e.g. 15000.00"
+                value={compareAtPrice}
+                onChange={(e) => setCompareAtPrice(e.target.value)}
+                disabled={isSubmitting}
+                className="font-mono text-sm"
+              />
+            </FormField>
+
+            <FormField
+              label="Override Discount %"
+              hint="Leave blank to auto-calculate from Compare-At"
+            >
+              <Input
+                type="number"
+                min="0"
+                max="100"
+                step="0.1"
+                placeholder="Auto-calculated"
+                value={discountPercentage}
+                onChange={(e) => setDiscountPercentage(e.target.value)}
+                disabled={isSubmitting}
+                className="font-mono text-sm"
+              />
+            </FormField>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-[#F0EAE2]">
+            <FormField
+              label="Vault Stock Quantity (Units)"
+              hint="Available inventory. Auto-decrements upon customer purchase."
+            >
+              <Input
+                type="number"
+                min="0"
+                step="1"
+                placeholder="0"
+                value={stockQuantity}
+                onChange={(e) => setStockQuantity(e.target.value)}
+                disabled={isSubmitting}
+                className="font-mono text-sm"
+              />
+            </FormField>
+
+            <FormField
+              label="Low Stock Alert Threshold"
+              hint="Trigger alert when inventory drops below this number"
+            >
+              <Input
+                type="number"
+                min="0"
+                step="1"
+                placeholder="5"
+                value={lowStockThreshold}
+                onChange={(e) => setLowStockThreshold(e.target.value)}
+                disabled={isSubmitting}
+                className="font-mono text-sm"
+              />
+            </FormField>
+          </div>
         </CardContent>
       </Card>
 
@@ -519,22 +686,37 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                 Lifecycle State
               </label>
               <div className="flex items-center gap-2">
-                {(["draft", "published", "archived"] as ProductStatus[]).map((st) => (
-                  <button
-                    key={st}
-                    type="button"
-                    onClick={() => setStatus(st)}
-                    disabled={isSubmitting}
-                    className={`px-3 py-1.5 text-xs font-medium rounded capitalize border transition-all ${
-                      status === st
-                        ? "bg-[#24211E] text-white border-[#24211E]"
-                        : "bg-white text-[#716B64] border-[#E8E1D8] hover:border-[#B08D57]"
-                    }`}
-                  >
-                    {st}
-                  </button>
-                ))}
+                {(() => {
+                  // If product is published (or was published), user cannot revert to draft ("if published then no drafting")
+                  const isPublishedInitial = initialProduct?.status === "published";
+                  const availableStatuses: ProductStatus[] = isPublishedInitial
+                    ? ["published", "archived"]
+                    : initialProduct?.status === "archived"
+                    ? ["archived", "published", "draft"]
+                    : ["draft", "published"];
+
+                  return availableStatuses.map((st) => (
+                    <button
+                      key={st}
+                      type="button"
+                      onClick={() => setStatus(st)}
+                      disabled={isSubmitting}
+                      className={`px-3 py-1.5 text-xs font-medium rounded capitalize border transition-all ${
+                        status === st
+                          ? "bg-[#24211E] text-white border-[#24211E]"
+                          : "bg-white text-[#716B64] border-[#E8E1D8] hover:border-[#B08D57]"
+                      }`}
+                    >
+                      {st}
+                    </button>
+                  ));
+                })()}
               </div>
+              {initialProduct?.status === "published" && (
+                <p className="text-[11px] text-[#9E988F] mt-1.5 italic">
+                  Published pieces cannot be reverted to draft. You can archive or delete this piece.
+                </p>
+              )}
             </div>
 
             <div>
@@ -552,39 +734,127 @@ export const ProductForm: React.FC<ProductFormProps> = ({
 
       {/* Bottom Sticky Action Bar */}
       <div className="sticky bottom-4 z-20 bg-white/95 backdrop-blur-sm p-4 border border-[#E8E1D8] shadow-lg flex items-center justify-between rounded">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => router.push("/admin/products")}
-          disabled={isSubmitting}
-        >
-          Cancel
-        </Button>
-
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <Button
             variant="outline"
             size="sm"
-            onClick={() => handleSubmit("draft")}
-            isLoading={isSubmitting && status === "draft"}
-            disabled={isSubmitting}
+            onClick={() => router.push("/admin/products")}
+            disabled={isSubmitting || isDeleting}
           >
-            Save as Draft
+            Cancel
           </Button>
 
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={() => handleSubmit("published")}
-            isLoading={isSubmitting && status === "published"}
-            disabled={isSubmitting}
-            className="gap-1.5"
-          >
-            <Save className="w-3.5 h-3.5" />
-            {isEditing ? "Update & Publish" : "Publish Piece"}
-          </Button>
+          {isEditing && initialProduct && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsDeleteOpen(true)}
+              disabled={isSubmitting || isDeleting}
+              className="gap-1.5 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              Delete Piece
+            </Button>
+          )}
+        </div>
+
+        <div className="flex items-center gap-3">
+          {/* Status specific action buttons */}
+          {status === "draft" && (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleSubmit("draft")}
+                isLoading={isSubmitting}
+                disabled={isSubmitting || isDeleting}
+              >
+                Save as Draft
+              </Button>
+
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => handleSubmit("published")}
+                isLoading={isSubmitting}
+                disabled={isSubmitting || isDeleting}
+                className="gap-1.5"
+              >
+                <Save className="w-3.5 h-3.5" />
+                {isEditing ? "Update & Publish" : "Publish Piece"}
+              </Button>
+            </>
+          )}
+
+          {status === "published" && (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleSubmit("archived")}
+                isLoading={isSubmitting}
+                disabled={isSubmitting || isDeleting}
+                className="gap-1.5 text-amber-800 border-amber-300 hover:bg-amber-50"
+              >
+                <Archive className="w-3.5 h-3.5 text-amber-700" />
+                Archive Piece
+              </Button>
+
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => handleSubmit("published")}
+                isLoading={isSubmitting}
+                disabled={isSubmitting || isDeleting}
+                className="gap-1.5"
+              >
+                <Save className="w-3.5 h-3.5" />
+                Save Changes
+              </Button>
+            </>
+          )}
+
+          {status === "archived" && (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleSubmit("draft")}
+                isLoading={isSubmitting}
+                disabled={isSubmitting || isDeleting}
+              >
+                Revert to Draft
+              </Button>
+
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => handleSubmit("published")}
+                isLoading={isSubmitting}
+                disabled={isSubmitting || isDeleting}
+                className="gap-1.5"
+              >
+                <Save className="w-3.5 h-3.5" />
+                Re-publish Piece
+              </Button>
+            </>
+          )}
         </div>
       </div>
+
+      {/* Delete Product Confirmation Modal */}
+      {isEditing && initialProduct && (
+        <ConfirmationModal
+          isOpen={isDeleteOpen}
+          onClose={() => setIsDeleteOpen(false)}
+          onConfirm={handleDeleteConfirm}
+          title="Delete Jewellery Piece"
+          message={`Are you sure you want to permanently delete '${title}' (SKU: ${sku || initialProduct.sku})? All associated Cloudinary images will be removed.`}
+          confirmLabel="Yes, Delete Piece"
+          variant="danger"
+          isLoading={isDeleting}
+        />
+      )}
     </div>
   );
 };

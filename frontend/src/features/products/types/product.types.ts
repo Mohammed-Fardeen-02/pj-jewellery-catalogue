@@ -29,6 +29,11 @@ export interface ProductResponse {
   status: ProductStatus;
   is_published: boolean;
   is_active: boolean;
+  price: number;
+  compare_at_price?: number | null;
+  discount_percentage?: number | null;
+  stock_quantity: number;
+  low_stock_threshold?: number;
   video_url?: string | null;
   primary_image?: ProductImageResponse | null;
   images: ProductImageResponse[];
@@ -38,12 +43,17 @@ export interface ProductResponse {
 
 export interface ProductPublicResponse {
   id: string;
+  sku: string;
   title: string;
   slug: string;
   description?: string | null;
   category?: ProductCategorySummary | null;
   tags: string[];
   attributes: Record<string, unknown>;
+  price: number;
+  compare_at_price?: number | null;
+  discount_percentage?: number | null;
+  stock_quantity: number;
   video_url?: string | null;
   primary_image?: ProductImageResponse | null;
   images: ProductImageResponse[];
@@ -69,6 +79,11 @@ export interface ProductCreatePayload {
   attributes?: Record<string, unknown>;
   status?: ProductStatus;
   is_active?: boolean;
+  price?: number;
+  compare_at_price?: number;
+  discount_percentage?: number;
+  stock_quantity?: number;
+  low_stock_threshold?: number;
   video_url?: string;
   images?: ProductImageCreate[];
 }
@@ -82,7 +97,13 @@ export interface ProductUpdatePayload {
   tags?: string[];
   keywords?: string[];
   attributes?: Record<string, unknown>;
+  status?: ProductStatus;
   is_active?: boolean;
+  price?: number;
+  compare_at_price?: number;
+  discount_percentage?: number;
+  stock_quantity?: number;
+  low_stock_threshold?: number;
   video_url?: string;
   images?: ProductImageCreate[];
 }

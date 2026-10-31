@@ -104,4 +104,27 @@ export const productApi = {
   async deleteVideo(productId: string, token?: string): Promise<ProductResponse> {
     return apiClient.delete<ProductResponse>(ENDPOINTS.admin.productVideo(productId), { token });
   },
+
+  // Stock & Inventory Module
+  async adjustStock(
+    productId: string,
+    payload: {
+      transaction_type: "stock_in" | "stock_out" | "adjustment";
+      quantity: number;
+      reason: string;
+      notes?: string;
+      reference_id?: string;
+    },
+    token?: string
+  ) {
+    return apiClient.post(ENDPOINTS.admin.productStockAdjust(productId), payload, { token });
+  },
+
+  async getStockHistory(productId: string, token?: string) {
+    return apiClient.get(ENDPOINTS.admin.productStockHistory(productId), { token });
+  },
+
+  async getStockOverview(token?: string) {
+    return apiClient.get(ENDPOINTS.admin.stockOverview, { token });
+  },
 };
