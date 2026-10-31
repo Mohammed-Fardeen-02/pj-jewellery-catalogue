@@ -24,7 +24,20 @@ def create_engine() -> AsyncEngine:
         engine_kwargs["max_overflow"] = settings.DATABASE_MAX_OVERFLOW
         engine_kwargs["pool_timeout"] = settings.DATABASE_POOL_TIMEOUT
 
-    return create_async_engine(settings.DATABASE_URL, **engine_kwargs)
+    engine = create_async_engine(settings.DATABASE_URL, **engine_kwargs)
+
+    # Cross-compatibility: register PostgreSQL-compatible now() function in SQLite
+    if settings.DATABASE_URL.startswith("sqlite"):
+        from datetime import UTC, datetime
+        from sqlalchemy import event
+
+        @event.listens_for(engine.sync_engine, "connect")
+        def _sqlite_connect(dbapi_connection, connection_record):
+            dbapi_connection.create_function(
+                "now", 0, lambda: datetime.now(UTC).isoformat()
+            )
+
+    return engine
 
 
 # Application-level engine and session maker

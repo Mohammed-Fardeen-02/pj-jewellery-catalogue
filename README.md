@@ -68,44 +68,72 @@ A centralized template with empty variables is provided in root [`.env.example`]
 
 ---
 
-## 🚀 Quick Start Guide
+## 🚀 Quick Start Guide (For Evaluators & Developers)
 
-### Prerequisites
-* [Docker & Docker Compose](https://www.docker.com/)
-* [Node.js 20+](https://nodejs.org/) and `npm`
+Follow this 3-step sequence to bring up the database, apply migrations, seed the administrator, and seed the complete catalogue with 100 real Cloudinary images and orders.
+
+### Step 1: Database Migrations (Run Alembic First)
+
+#### Option A: Local Python Environment
+```bash
+cd backend
+alembic upgrade head
+```
+
+#### Option B: Docker Environment
+```bash
+cd backend
+docker compose up -d
+docker compose exec api alembic upgrade head
+```
 
 ---
 
-### 1. Start Backend & Database (Docker)
+### Step 2: Seed / Synchronize Super Administrator
 
+Bootstraps the administrator account with credentials from `backend/.env` (`SUPERADMIN_EMAIL` and `SUPERADMIN_PASSWORD`):
+
+#### Local Python:
 ```bash
 cd backend
+python scripts/seed_admin.py
+```
 
-# 1. Start FastAPI and PostgreSQL containers
-docker compose up -d
-
-# 2. Run database migrations
-docker compose exec api alembic upgrade head
-
-# 3. Seed catalogue (Categories & Products)
-docker compose exec api python scripts/seed_catalogue.py
-
-# 4. Seed / Synchronize Super Administrator account from .env
+#### Docker:
+```bash
 docker compose exec api python scripts/seed_admin.py
 ```
 
-* **API Base URL**: `http://localhost:8000`
-* **Swagger API Documentation**: `http://localhost:8000/docs`
-* **ReDoc Documentation**: `http://localhost:8000/redoc`
-* **Health Check**: `http://localhost:8000/health`
-* **Super Admin Login**:
-  * **Email**: `admin@pjjewellery.com`
-  * **Password**: `Admin@PJ2026!Secured`
-  * **Role**: `super_admin`
+* **Default Admin Email**: `admin@pjjewellery.com`
+* **Default Admin Password**: `Admin@PJ2026!Secured`
+* **Role**: `super_admin`
 
 ---
 
-### 2. Start Frontend Application
+### Step 3: Seed Master Catalogue, 100 Real Cloudinary Images & Orders
+
+Runs the comprehensive master seeding script:
+- **5 Luxury Categories**: Rings, Necklaces, Bracelets, Earrings, Pendants & Brooches.
+- **20 Fine Jewellery Products**: Exactly 4 products per category with realistic luxury specifications, weights, purities (Platinum 950, 18K Yellow/White/Rose Gold), natural gemstones (Diamond, Emerald, Sapphire, South Sea Pearl, Tanzanite), and pricing.
+- **100 Real High-Resolution Images**: Exactly 5 photographic shots per piece (hero macro, 45° angle, side gallery profile, model shoot, luxury gift box) uploaded directly to Cloudinary (`dkg4jpo87`) under `pj_jewellery/catalogue/`.
+- **20 Inventory Stock Transactions**: Audit records tracking initial inventory quantities.
+- **5 Acquisition Orders**: Spanning full lifecycle states (`confirmed`, `processing`, `shipped`, `delivered`, `pending`) with real customer info and line items.
+
+#### Local Python:
+```bash
+cd backend
+python scripts/seed_catalogue_with_media.py
+```
+*(Tip: Add `--skip-cloudinary` for offline mode or `--force-reseed` for a clean wipe & reseed).*
+
+#### Docker:
+```bash
+docker compose exec api python scripts/seed_catalogue_with_media.py
+```
+
+---
+
+### Step 4: Start Frontend Application
 
 ```bash
 cd frontend
@@ -120,29 +148,30 @@ npm run dev
 * **Public Storefront**: `http://localhost:3000`
 * **Admin Login Portal**: `http://localhost:3000/admin/login`
 * **Admin Dashboard**: `http://localhost:3000/admin`
+* **API Documentation**: `http://localhost:8000/docs`
+* **Health Check**: `http://localhost:8000/health`
 
 ---
 
 ## 🧪 Automated Testing
 
-### Backend Test Suite (34 Tests)
-Runs in isolated in-memory SQLite and PostgreSQL environments:
+### Backend Test Suite (41 Tests)
+Runs in isolated async database environments:
 ```bash
 cd backend
-docker compose exec api pytest
+pytest tests/ -v
 ```
-* Status: **34 of 34 passed**
-* Linter check: `docker compose exec api ruff check app tests` (0 warnings/errors)
+* Status: **41 of 41 passed**
 
-### Frontend Test Suite (17 Tests)
+### Frontend Test Suite (23 Tests)
 ```bash
 cd frontend
 npm run test
 ```
-* Unit tests: **17 of 17 passed**
+* Unit tests: **23 of 23 passed**
 * TypeScript verification: `npm run typecheck` (0 errors)
-* ESLint verification: `npm run lint` (0 errors)
-* Production build: `npm run build` (20 static pages compiled)
+* Production build: `npm run build` (Clean production bundle compile)
+
 
 ---
 
