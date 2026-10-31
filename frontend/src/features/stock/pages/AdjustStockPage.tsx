@@ -164,6 +164,14 @@ export function AdjustStockPage() {
       <PageHeader
         title="Post Vault Stock Adjustment"
         subtitle="Search a fine jewellery piece, record stock movements (Stock In / Stock Out / Calibration), and automatically update real-time vault balances."
+        action={
+          <Link href="/admin/stock">
+            <Button variant="outline" size="sm" className="gap-1.5">
+              <ArrowLeft className="w-3.5 h-3.5" />
+              Back to Storage Vault
+            </Button>
+          </Link>
+        }
       />
 
       {successMessage ? (

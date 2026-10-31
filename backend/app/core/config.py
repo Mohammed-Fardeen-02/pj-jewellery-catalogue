@@ -79,6 +79,18 @@ class Settings(BaseSettings):
         default="", description="Cloudinary asset folder prefix"
     )
 
+    # NVIDIA AI Vision & Extraction
+    NVIDIA_EXTRACTION_API_KEY: str | None = Field(default=None, description="NVIDIA API Key")
+    NVIDIA_EXTRACTION_BASE_URL: str = Field(
+        default="https://integrate.api.nvidia.com/v1", description="NVIDIA Base URL"
+    )
+    NVIDIA_EXTRACTION_MODEL: str = Field(
+        default="meta/llama-3.1-8b-instruct", description="NVIDIA text model"
+    )
+    NVIDIA_EXTRACTION_VISION_MODEL: str = Field(
+        default="meta/llama-3.2-11b-vision-instruct", description="NVIDIA vision model"
+    )
+
     @field_validator("DATABASE_URL")
     @classmethod
     def validate_database_url(cls, v: str) -> str:

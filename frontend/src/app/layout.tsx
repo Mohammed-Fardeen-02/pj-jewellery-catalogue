@@ -11,6 +11,8 @@ export const metadata: Metadata = {
     "Explore the exclusive catalogue of PJ Fine Jewellery. Handcrafted bespoke high jewellery, rare gemstones, and timeless luxury.",
 };
 
+import { ToastProvider } from "@/context/toast-context";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -19,14 +21,14 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="antialiased bg-[#FAF8F4] text-[#24211E] min-h-screen flex flex-col font-sans">
-        {children}
+        <ToastProvider>{children}</ToastProvider>
         <Toaster
           position="top-right"
           toastOptions={{
             style: {
-              background: "#FFFFFF",
-              color: "#24211E",
-              border: "1px solid #E8E1D8",
+              background: "#1A1816",
+              color: "#FAF8F4",
+              border: "1px solid #B08D57",
               fontFamily: "var(--font-sans)",
             },
           }}

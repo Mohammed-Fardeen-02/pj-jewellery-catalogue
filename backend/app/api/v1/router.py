@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 
 from app.api.v1.endpoints import auth, brands, health
+from app.modules.ai.routes import admin_router as ai_admin_router
 from app.modules.analytics.routes import router as analytics_router
 from app.modules.categories.routes import admin_router as category_admin_router
 from app.modules.categories.routes import public_router as category_public_router
@@ -33,6 +34,9 @@ api_router.include_router(
 )
 api_router.include_router(
     analytics_router, prefix="/admin/analytics", tags=["Analytics (Admin)"]
+)
+api_router.include_router(
+    ai_admin_router, prefix="/admin/ai", tags=["AI Vision (Admin)"]
 )
 
 # Public Storefront APIs

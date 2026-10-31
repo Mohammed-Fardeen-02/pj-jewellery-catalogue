@@ -14,6 +14,7 @@ import {
   PackageCheck,
   Archive,
   Trash2,
+  Wand2,
 } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
@@ -40,6 +41,12 @@ import {
   type ProductStatus,
 } from "../index";
 import { useAuth } from "@/features/auth";
+import { useToast } from "@/context/toast-context";
+import { aiApi, type AiSuggestResponse } from "../api/ai.api";
+import {
+  ProductAiSuggestionsDrawer,
+  type AiSuggestedFields,
+} from "./ProductAiSuggestionsDrawer";
 
 export interface ProductFormProps {
   initialProduct?: ProductResponse | null;
@@ -51,6 +58,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
   isEditing = false,
 }) => {
   const router = useRouter();
+  const toast = useToast();
   const { tokens } = useAuth();
   const token = tokens?.access_token;
 
@@ -59,15 +67,25 @@ export const ProductForm: React.FC<ProductFormProps> = ({
   const [isDeleteOpen, setIsDeleteOpen] = React.useState(false);
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = React.useState<Record<string, string>>({});
+
+  // AI Suggestions Drawer State
+  const [isAiDrawerOpen, setIsAiDrawerOpen] = React.useState(false);
+  const [isAiLoading, setIsAiLoading] = React.useState(false);
+  const [aiSuggestions, setAiSuggestions] = React.useState<AiSuggestResponse | null>(null);
+  const [analyzedImageUrl, setAnalyzedImageUrl] = React.useState<string | null>(null);
 
   const handleDeleteConfirm = async () => {
     if (!initialProduct) return;
     setIsDeleting(true);
     try {
       await productApi.delete(initialProduct.id, token || undefined);
+      toast.success("Piece Deleted", `'${initialProduct.title}' was deleted from the catalogue.`);
       router.push("/admin/products");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to delete piece.");
+      const msg = err instanceof Error ? err.message : "Failed to delete piece.";
+      setError(msg);
+      toast.error("Deletion Failed", msg);
       setIsDeleteOpen(false);
     } finally {
       setIsDeleting(false);
@@ -189,23 +207,164 @@ export const ProductForm: React.FC<ProductFormProps> = ({
   const selectedCategory = categories.find((c) => c.id === categoryId);
   const isCategoryInactive = selectedCategory && !selectedCategory.is_active;
 
+  const handleTriggerAiSuggestions = async (targetImage?: ManagedImageItem) => {
+    const chosenImage = targetImage || images.find((i) => i.is_primary) || images[0];
+    if (!chosenImage) {
+      toast.warning(
+        "No Image Uploaded",
+        "Please upload a primary piece photo first to generate AI suggestions."
+      );
+      return;
+    }
+
+    setIsAiLoading(true);
+    try {
+      let imageDataUri: string | undefined = undefined;
+      let imageUrl: string | undefined = undefined;
+
+      if (chosenImage.file) {
+        imageDataUri = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(chosenImage.file!);
+        });
+      } else if (chosenImage.image_url) {
+        if (chosenImage.image_url.startsWith("data:")) {
+          imageDataUri = chosenImage.image_url;
+        } else {
+          imageUrl = chosenImage.image_url;
+        }
+      }
+
+      const targetUrl = imageDataUri || imageUrl || chosenImage.image_url;
+      if (!targetUrl) {
+        toast.warning("No Image Detected", "Unable to extract image data.");
+        return;
+      }
+      setAnalyzedImageUrl(targetUrl);
+
+      toast.info(
+        "Inspecting Piece",
+        "NVIDIA Vision model is analyzing gemstone cut, metal, and craftsmanship..."
+      );
+
+      const res = await aiApi.suggestProduct(
+        {
+          image_url: targetUrl,
+          category_hint: selectedCategory?.name || undefined,
+        },
+        token || undefined
+      );
+
+      setAiSuggestions(res);
+      setIsAiDrawerOpen(true);
+      toast.success(
+        "AI Suggestions Ready",
+        "Gemological suggestions extracted. Choose which fields to populate."
+      );
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to obtain AI suggestions.";
+      toast.error("AI Analysis Failed", msg);
+    } finally {
+      setIsAiLoading(false);
+    }
+  };
+
+  const handleApplyAiSuggestions = (suggested: AiSuggestedFields) => {
+    if (suggested.title) {
+      setTitle(suggested.title);
+      if (!isEditing || !slug) {
+        const genSlug = suggested.title
+          .toLowerCase()
+          .trim()
+          .replace(/[^\w\s-]/g, "")
+          .replace(/[\s_-]+/g, "-")
+          .replace(/^-+|-+$/g, "");
+        setSlug(genSlug);
+      }
+    }
+    if (suggested.description) {
+      setDescription(suggested.description);
+    }
+    if (suggested.categoryId) {
+      setCategoryId(suggested.categoryId);
+    }
+    if (suggested.designStyle) {
+      setDesignStyle(suggested.designStyle);
+    }
+    if (suggested.gemstoneType) {
+      setGemstoneType(suggested.gemstoneType);
+    }
+    if (suggested.metalType) {
+      setMetalType(suggested.metalType);
+    }
+    if (suggested.collection) {
+      setCollection(suggested.collection);
+    }
+    if (suggested.tags && suggested.tags.length > 0) {
+      const currentTags = tagsInput.split(",").map((t) => t.trim()).filter(Boolean);
+      const combined = Array.from(new Set([...currentTags, ...suggested.tags]));
+      setTagsInput(combined.join(", "));
+    }
+    if (suggested.keywords && suggested.keywords.length > 0) {
+      const currentKws = keywordsInput.split(",").map((k) => k.trim()).filter(Boolean);
+      const combined = Array.from(new Set([...currentKws, ...suggested.keywords]));
+      setKeywordsInput(combined.join(", "));
+    }
+
+    // Clear resolved errors
+    setFieldErrors((prev) => {
+      const next = { ...prev };
+      if (suggested.title) delete next.title;
+      if (suggested.categoryId) delete next.categoryId;
+      return next;
+    });
+
+    toast.success(
+      "Suggestions Populated",
+      "Selected piece fields populated. Note: Price, purity, and gram weights must be entered manually."
+    );
+  };
+
   const handleSubmit = async (targetStatus?: ProductStatus) => {
     const finalStatus = targetStatus || status;
 
+    // Strict Form Validations
+    const newErrors: Record<string, string> = {};
     if (!title.trim()) {
-      setError("Product title is mandatory.");
+      newErrors.title = "Piece title is mandatory.";
+    }
+    if (!categoryId) {
+      newErrors.categoryId = "Associated category is mandatory.";
+    }
+    if (!price.trim() || isNaN(Number(price)) || Number(price) <= 0) {
+      newErrors.price = "A valid selling price greater than zero is required.";
+    }
+    if (stockQuantity.trim() === "" || isNaN(Number(stockQuantity)) || Number(stockQuantity) < 0) {
+      newErrors.stockQuantity = "Vault stock quantity must be 0 or greater.";
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setFieldErrors(newErrors);
+      toast.error(
+        "Mandatory Fields Required",
+        "Please fill in all required fields (marked with *) before saving."
+      );
       return;
     }
 
     if (images.length > 5) {
-      setError("A product can hold a maximum of 5 images.");
+      const msg = "A product can hold a maximum of 5 images.";
+      setError(msg);
+      toast.error("Image Limit Exceeded", msg);
       return;
     }
 
     if (finalStatus === "published" && isCategoryInactive) {
-      setError(
-        `Cannot publish piece under inactive category '${selectedCategory?.name}'. Please activate the category first.`
-      );
+      const msg = `Cannot publish piece under inactive category '${selectedCategory?.name}'. Please activate the category first.`;
+      setError(msg);
+      toast.error("Inactive Category", msg);
       return;
     }
 
@@ -312,13 +471,18 @@ export const ProductForm: React.FC<ProductFormProps> = ({
         );
       }
 
+      toast.success(
+        isEditing ? "Piece Updated" : "Piece Registered",
+        `'${title}' was saved with status: ${finalStatus.toUpperCase()}.`
+      );
       router.push("/admin/products");
     } catch (err: unknown) {
-      setError(
+      const msg =
         err instanceof Error
           ? err.message
-          : "An error occurred while saving the product."
-      );
+          : "An error occurred while saving the product.";
+      setError(msg);
+      toast.error("Save Failed", msg);
     } finally {
       setIsSubmitting(false);
     }
@@ -360,24 +524,44 @@ export const ProductForm: React.FC<ProductFormProps> = ({
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <FormField label="Piece Title" required>
+            <FormField label="Piece Title" required error={fieldErrors.title}>
               <Input
                 placeholder="e.g. Celestial Diamond Solitaire Ring"
                 value={title}
-                onChange={handleTitleChange}
+                onChange={(e) => {
+                  handleTitleChange(e);
+                  if (fieldErrors.title) {
+                    setFieldErrors((prev) => {
+                      const next = { ...prev };
+                      delete next.title;
+                      return next;
+                    });
+                  }
+                }}
+                error={!!fieldErrors.title}
                 disabled={isSubmitting}
               />
             </FormField>
 
             <div>
-              <label className="block text-xs font-medium text-[#24211E] mb-1.5">
-                Associated Category
+              <label className="block text-xs font-semibold uppercase tracking-wider text-[#716B64] mb-1.5">
+                Associated Category <span className="text-rose-500">*</span>
               </label>
               <SearchableCategorySelect
                 value={categoryId}
-                onChange={setCategoryId}
+                onChange={(val) => {
+                  setCategoryId(val);
+                  if (fieldErrors.categoryId) {
+                    setFieldErrors((prev) => {
+                      const next = { ...prev };
+                      delete next.categoryId;
+                      return next;
+                    });
+                  }
+                }}
                 disabled={isSubmitting}
                 allowQuickAdd={true}
+                error={fieldErrors.categoryId}
               />
             </div>
           </div>
@@ -440,14 +624,29 @@ export const ProductForm: React.FC<ProductFormProps> = ({
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <FormField label="Selling Price ($)" required hint="Customer storefront checkout amount">
+            <FormField
+              label="Selling Price ($)"
+              required
+              hint="Customer storefront checkout amount"
+              error={fieldErrors.price}
+            >
               <Input
                 type="number"
                 min="0"
                 step="0.01"
                 placeholder="e.g. 12500.00"
                 value={price}
-                onChange={(e) => setPrice(e.target.value)}
+                onChange={(e) => {
+                  setPrice(e.target.value);
+                  if (fieldErrors.price) {
+                    setFieldErrors((prev) => {
+                      const next = { ...prev };
+                      delete next.price;
+                      return next;
+                    });
+                  }
+                }}
+                error={!!fieldErrors.price}
                 disabled={isSubmitting}
                 className="font-mono text-sm"
               />
@@ -490,7 +689,9 @@ export const ProductForm: React.FC<ProductFormProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-[#F0EAE2]">
             <FormField
               label="Vault Stock Quantity (Units)"
+              required
               hint="Available inventory. Auto-decrements upon customer purchase."
+              error={fieldErrors.stockQuantity}
             >
               <Input
                 type="number"
@@ -498,7 +699,17 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                 step="1"
                 placeholder="0"
                 value={stockQuantity}
-                onChange={(e) => setStockQuantity(e.target.value)}
+                onChange={(e) => {
+                  setStockQuantity(e.target.value);
+                  if (fieldErrors.stockQuantity) {
+                    setFieldErrors((prev) => {
+                      const next = { ...prev };
+                      delete next.stockQuantity;
+                      return next;
+                    });
+                  }
+                }}
+                error={!!fieldErrors.stockQuantity}
                 disabled={isSubmitting}
                 className="font-mono text-sm"
               />
@@ -523,15 +734,66 @@ export const ProductForm: React.FC<ProductFormProps> = ({
         </CardContent>
       </Card>
 
-      {/* Card 2: Cloudinary Media Gallery (Max 5 images & 1 video) */}
+      {/* Card 3: Cloudinary Media Gallery (Max 5 images & 1 video) */}
       <Card className="bg-white">
         <CardContent className="p-6 space-y-6">
-          <div className="flex items-center gap-2 pb-2 border-b border-[#E8E1D8]">
-            <Film className="w-4 h-4 text-[#B08D57]" />
-            <h3 className="font-serif text-base font-medium text-[#24211E]">
-              Cloudinary Media Gallery
-            </h3>
+          <div className="flex items-center justify-between pb-2 border-b border-[#E8E1D8]">
+            <div className="flex items-center gap-2">
+              <Film className="w-4 h-4 text-[#B08D57]" />
+              <h3 className="font-serif text-base font-medium text-[#24211E]">
+                Cloudinary Media Gallery
+              </h3>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => handleTriggerAiSuggestions()}
+              isLoading={isAiLoading}
+              disabled={isSubmitting || isAiLoading || images.length === 0}
+              className="gap-2 border-[#B08D57]/40 text-[#8C6D37] hover:bg-[#F7F3EE] text-xs h-8"
+              title={
+                images.length === 0
+                  ? "Upload a piece photo first"
+                  : "Extract AI suggestions from primary photo"
+              }
+            >
+              <Wand2 className="w-3.5 h-3.5 text-[#B08D57]" />
+              <span>{aiSuggestions ? "Re-Analyze with AI" : "AI Vision Auto-Fill"}</span>
+            </Button>
           </div>
+
+          {/* AI Quick Banner when images exist */}
+          {images.length > 0 && (
+            <div className="p-3 bg-gradient-to-r from-[#FAF8F4] to-[#F5EFE6] border border-[#B08D57]/30 rounded flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <Sparkles className="w-4 h-4 text-[#B08D57] shrink-0" />
+                <p className="text-xs text-[#524B43]">
+                  <strong className="font-medium text-[#24211E]">AI Gemologist Vision:</strong>{" "}
+                  {aiSuggestions
+                    ? "Suggestions generated. Open drawer to apply or modify fields."
+                    : "Primary piece photo detected. Let AI suggest title, editorial story, style & category."}
+                </p>
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  if (aiSuggestions) {
+                    setIsAiDrawerOpen(true);
+                  } else {
+                    handleTriggerAiSuggestions();
+                  }
+                }}
+                isLoading={isAiLoading}
+                className="text-xs h-7 px-3 border-[#B08D57] text-[#8C6D37] hover:bg-[#B08D57] hover:text-white shrink-0"
+              >
+                <Wand2 className="w-3 h-3 mr-1.5" />
+                {aiSuggestions ? "View Suggestions" : "Analyze Piece"}
+              </Button>
+            </div>
+          )}
 
           {/* Multi-Image Uploader (Strictly Max 5 images) */}
           <MultiImageUploader
@@ -855,6 +1117,18 @@ export const ProductForm: React.FC<ProductFormProps> = ({
           isLoading={isDeleting}
         />
       )}
+
+      {/* AI Gemologist Suggestions Drawer (Right-side slideout) */}
+      <ProductAiSuggestionsDrawer
+        isOpen={isAiDrawerOpen}
+        onClose={() => setIsAiDrawerOpen(false)}
+        isLoading={isAiLoading}
+        suggestions={aiSuggestions}
+        onRetry={() => handleTriggerAiSuggestions()}
+        onApply={handleApplyAiSuggestions}
+        imageUrl={analyzedImageUrl}
+        availableCategories={categories}
+      />
     </div>
   );
 };

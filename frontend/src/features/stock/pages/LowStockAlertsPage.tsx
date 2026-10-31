@@ -71,6 +71,12 @@ export function LowStockAlertsPage() {
         subtitle="Pieces matching or falling below the minimum replenishment safety threshold defined in the product master catalogue."
         action={
           <div className="flex items-center gap-2">
+            <Link href="/admin/stock">
+              <Button variant="outline" size="sm" className="gap-1.5">
+                <ArrowLeft className="w-3.5 h-3.5" />
+                Back to Vault
+              </Button>
+            </Link>
             <Button
               variant="outline"
               size="sm"

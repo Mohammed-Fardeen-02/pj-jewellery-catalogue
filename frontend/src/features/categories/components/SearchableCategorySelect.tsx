@@ -13,6 +13,7 @@ export interface SearchableCategorySelectProps {
   disabled?: boolean;
   label?: string;
   required?: boolean;
+  error?: string;
   allowQuickAdd?: boolean;
   onCategoryAdded?: (category: CategoryResponse) => void;
 }
@@ -21,6 +22,7 @@ export function SearchableCategorySelect({
   value,
   onChange,
   disabled = false,
+  error,
   allowQuickAdd = true,
   onCategoryAdded,
 }: SearchableCategorySelectProps) {
@@ -90,6 +92,10 @@ export function SearchableCategorySelect({
           </button>
         )}
       </div>
+
+      {error && (
+        <p className="text-xs font-medium text-rose-600">{error}</p>
+      )}
 
       {/* Inactive Category Notice */}
       {isSelectedInactive && (
