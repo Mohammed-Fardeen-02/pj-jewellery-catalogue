@@ -22,7 +22,8 @@ target_metadata = Base.metadata
 
 # Override sqlalchemy.url with runtime application settings
 settings = get_settings()
-config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+# Escape '%' for configparser interpolation safety (e.g. URL-encoded passwords with %)
+config.set_main_option("sqlalchemy.url", settings.DATABASE_URL.replace("%", "%%"))
 
 
 def run_migrations_offline() -> None:
