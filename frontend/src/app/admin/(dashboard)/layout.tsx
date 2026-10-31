@@ -188,7 +188,7 @@ export default function AdminDashboardLayout({
 
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-[#F7F4EF] flex">
+      <div className="h-screen w-screen overflow-hidden flex bg-[#F7F4EF]">
       {/* Mobile Sidebar Overlay */}
       {mobileSidebarOpen && (
         <div
@@ -200,69 +200,69 @@ export default function AdminDashboardLayout({
       {/* Sidebar Navigation - Fixed 100% screen height */}
       <aside
         className={cn(
-          "fixed top-0 bottom-0 left-0 z-40 bg-[#1A1816] text-[#FAF8F4] flex flex-col justify-between transition-all duration-300 ease-in-out border-r border-[#2C2723] h-screen overflow-y-auto",
+          "fixed top-0 bottom-0 left-0 z-40 bg-[#1A1816] text-[#FAF8F4] flex flex-col justify-between transition-all duration-300 ease-in-out border-r border-[#2C2723] h-screen select-none",
           isCollapsed ? "w-20" : "w-64",
           mobileSidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         )}
       >
-        <div>
-          {/* Header & Logo with PJ Toggle Feature */}
-          <div
-            className={cn(
-              "h-20 flex items-center border-b border-[#2C2723] transition-all",
-              isCollapsed ? "justify-center px-2" : "justify-between px-6"
-            )}
-          >
-            {isCollapsed ? (
-              // In collapsed mode: Clicking the PJ Logo expands the sidebar back to full width!
-              <button
-                type="button"
-                onClick={handleToggleCollapse}
-                title="Click PJ Logo to expand sidebar"
-                className="group flex flex-col items-center justify-center p-2 rounded hover:bg-[#272320] transition-colors"
-              >
-                <span className="font-serif text-2xl tracking-widest text-[#B08D57] group-hover:text-white font-medium transition-colors">
+        {/* Header & Logo with PJ Toggle Feature */}
+        <div
+          className={cn(
+            "shrink-0 h-16 sm:h-20 flex items-center border-b border-[#2C2723] transition-all",
+            isCollapsed ? "justify-center px-2" : "justify-between px-6"
+          )}
+        >
+          {isCollapsed ? (
+            // In collapsed mode: Clicking the PJ Logo expands the sidebar back to full width!
+            <button
+              type="button"
+              onClick={handleToggleCollapse}
+              title="Click PJ Logo to expand sidebar"
+              className="group flex flex-col items-center justify-center p-2 rounded hover:bg-[#272320] transition-colors"
+            >
+              <span className="font-serif text-2xl tracking-widest text-[#B08D57] group-hover:text-white font-medium transition-colors">
+                PJ
+              </span>
+              <span className="text-[8px] uppercase tracking-tighter text-[#888177] group-hover:text-[#B08D57]">
+                Expand
+              </span>
+            </button>
+          ) : (
+            // In expanded mode: Logo links to admin, plus dedicated collapse button
+            <>
+              <Link href="/admin" className="flex items-center gap-2.5">
+                <span className="font-serif text-2xl tracking-widest text-white font-medium">
                   PJ
                 </span>
-                <span className="text-[8px] uppercase tracking-tighter text-[#888177] group-hover:text-[#B08D57]">
-                  Expand
+                <span className="text-[10px] uppercase tracking-widest text-[#B08D57] font-semibold border-l border-[#3E3832] pl-2.5">
+                  Dashboard
                 </span>
-              </button>
-            ) : (
-              // In expanded mode: Logo links to admin, plus dedicated collapse button
-              <>
-                <Link href="/admin" className="flex items-center gap-2.5">
-                  <span className="font-serif text-2xl tracking-widest text-white font-medium">
-                    PJ
-                  </span>
-                  <span className="text-[10px] uppercase tracking-widest text-[#B08D57] font-semibold border-l border-[#3E3832] pl-2.5">
-                    Dashboard
-                  </span>
-                </Link>
+              </Link>
 
-                <div className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={handleToggleCollapse}
-                    title="Collapse sidebar (w-20)"
-                    className="hidden lg:flex items-center justify-center w-7 h-7 rounded text-[#888177] hover:text-white hover:bg-[#272320] transition-colors"
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                  </button>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={handleToggleCollapse}
+                  title="Collapse sidebar (w-20)"
+                  className="hidden lg:flex items-center justify-center w-7 h-7 rounded text-[#888177] hover:text-white hover:bg-[#272320] transition-colors"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
 
-                  <button
-                    type="button"
-                    onClick={() => setMobileSidebarOpen(false)}
-                    className="lg:hidden text-[#888177] hover:text-white"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
+                <button
+                  type="button"
+                  onClick={() => setMobileSidebarOpen(false)}
+                  className="lg:hidden text-[#888177] hover:text-white"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </>
+          )}
+        </div>
 
-          {/* Navigation Links wrapped in Suspense for Next.js PPR */}
+        {/* Scrollable Navigation links */}
+        <div className="flex-1 overflow-y-auto no-scrollbar py-2">
           <React.Suspense fallback={<div className="p-4 space-y-2" />}>
             <SidebarNav
               isCollapsed={isCollapsed}
@@ -271,8 +271,8 @@ export default function AdminDashboardLayout({
           </React.Suspense>
         </div>
 
-        {/* Sidebar Footer */}
-        <div className={cn("border-t border-[#2C2723] space-y-2", isCollapsed ? "p-2" : "p-4")}>
+        {/* Sidebar Footer with Logout Button - PERMANENTLY FIXED TO BOTTOM OF SCREEN */}
+        <div className={cn("shrink-0 border-t border-[#2C2723] bg-[#1A1816] space-y-2", isCollapsed ? "p-2" : "p-4")}>
           <Link
             href="/"
             target="_blank"
@@ -309,12 +309,12 @@ export default function AdminDashboardLayout({
       {/* Main Content Area */}
       <div
         className={cn(
-          "flex-1 flex flex-col min-w-0 transition-all duration-300 min-h-screen",
+          "flex-1 flex flex-col h-screen min-w-0 overflow-hidden transition-all duration-300",
           isCollapsed ? "lg:ml-20" : "lg:ml-64"
         )}
       >
-        {/* Top Header Bar with Breadcrumbs & Session Info */}
-        <header className="h-20 bg-white border-b border-[#E8E1D8] px-4 sm:px-8 flex items-center justify-between sticky top-0 z-30">
+        {/* Top Header Bar with Breadcrumbs & Session Info - FIXED AT TOP */}
+        <header className="shrink-0 h-16 sm:h-20 bg-white border-b border-[#E8E1D8] px-4 sm:px-8 flex items-center justify-between z-30">
           <div className="flex items-center gap-4">
             <button
               type="button"
@@ -373,53 +373,55 @@ export default function AdminDashboardLayout({
           </div>
         </header>
 
-        {/* Security Boundary Notice */}
-        <div className="bg-[#FAF0E6] border-b border-[#EADAC5] px-4 sm:px-8 py-2 text-[11px] text-[#8C6E3D] flex items-center gap-2">
+        {/* Security Boundary Notice - FIXED AT TOP */}
+        <div className="shrink-0 bg-[#FAF0E6] border-b border-[#EADAC5] px-4 sm:px-8 py-2 text-[11px] text-[#8C6E3D] flex items-center gap-2">
           <ShieldAlert className="w-4 h-4 shrink-0" />
           <span>
             <strong>Architectural Boundary:</strong> This UI shell visualizes administrative controls. Strict authorization and permissions are validated independently by FastAPI backend endpoints on every query.
           </span>
         </div>
 
-        {/* Page Content */}
-        <main className="flex-1 p-4 sm:p-8 max-w-7xl mx-auto w-full">
-          <React.Suspense
-            fallback={<div className="p-8 text-center text-xs text-[#716B64]">Loading view...</div>}
-          >
-            {children}
-          </React.Suspense>
-        </main>
-
-        {/* Polished Admin Footer with System Status */}
-        <footer className="mt-auto border-t border-[#E8E1D8] bg-white px-4 sm:px-8 py-4">
-          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-[#716B64]">
-            <div className="flex items-center gap-4">
-              <span className="font-serif font-medium text-[#24211E]">
-                PJ High Jewellery Atelier &amp; Vault
-              </span>
-              <span className="hidden sm:inline text-[#C5BCB1]">•</span>
-              <span className="text-[11px]">Catalogue Master &amp; Inventory Ledger</span>
-            </div>
-
-            {/* System Status Indicators */}
-            <div className="flex items-center gap-4 text-[11px]">
-              <div className="flex items-center gap-1.5">
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                <span>FastAPI Backend v1.0</span>
-              </div>
-              <span className="text-[#C5BCB1]">•</span>
-              <div className="flex items-center gap-1.5">
-                <Database className="w-3 h-3 text-[#B08D57]" />
-                <span>Vault DB Synced</span>
-              </div>
-              <span className="text-[#C5BCB1]">•</span>
-              <div className="flex items-center gap-1.5">
-                <Radio className="w-3 h-3 text-blue-500" />
-                <span>Cloudinary CDN</span>
-              </div>
-            </div>
+        {/* Scrollable Viewport (Only this container scrolls) */}
+        <main className="flex-1 overflow-y-auto w-full flex flex-col justify-between">
+          <div className="p-4 sm:p-8 max-w-7xl mx-auto w-full">
+            <React.Suspense
+              fallback={<div className="p-8 text-center text-xs text-[#716B64]">Loading view...</div>}
+            >
+              {children}
+            </React.Suspense>
           </div>
-        </footer>
+
+          {/* Polished Admin Footer with System Status */}
+          <footer className="mt-auto border-t border-[#E8E1D8] bg-white px-4 sm:px-8 py-4">
+            <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-[#716B64]">
+              <div className="flex items-center gap-4">
+                <span className="font-serif font-medium text-[#24211E]">
+                  PJ High Jewellery Atelier &amp; Vault
+                </span>
+                <span className="hidden sm:inline text-[#C5BCB1]">•</span>
+                <span className="text-[11px]">Catalogue Master &amp; Inventory Ledger</span>
+              </div>
+
+              {/* System Status Indicators */}
+              <div className="flex items-center gap-4 text-[11px]">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                  <span>FastAPI Backend v1.0</span>
+                </div>
+                <span className="text-[#C5BCB1]">•</span>
+                <div className="flex items-center gap-1.5">
+                  <Database className="w-3 h-3 text-[#B08D57]" />
+                  <span>Vault DB Synced</span>
+                </div>
+                <span className="text-[#C5BCB1]">•</span>
+                <div className="flex items-center gap-1.5">
+                  <Radio className="w-3 h-3 text-blue-500" />
+                  <span>Cloudinary CDN</span>
+                </div>
+              </div>
+            </div>
+          </footer>
+        </main>
       </div>
     </div>
     </AuthGuard>

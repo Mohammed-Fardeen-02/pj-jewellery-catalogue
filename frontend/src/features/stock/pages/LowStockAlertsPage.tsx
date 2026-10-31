@@ -197,9 +197,9 @@ export function LowStockAlertsPage() {
             />
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-320px)] border-t border-[#E8E1D8]">
             <table className="w-full text-left text-xs border-collapse">
-              <thead>
+              <thead className="sticky top-0 z-10 bg-[#FAF8F4] shadow-2xs">
                 <tr className="border-b border-[#E8E1D8] bg-[#FAF8F4] text-[#716B64] uppercase tracking-wider text-[10px]">
                   <th className="py-3 px-6 font-semibold">SKU Identifier</th>
                   <th className="py-3 px-6 font-semibold">Jewellery Piece</th>

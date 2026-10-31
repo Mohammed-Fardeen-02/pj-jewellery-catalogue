@@ -4,6 +4,8 @@ import { productApi } from "@/features/products/api/product.api";
 import { ProductDetailView } from "@/components/storefront/product-detail-view";
 
 
+export const dynamic = "force-dynamic";
+
 interface ProductDetailPageProps {
   params: Promise<{ slug: string }>;
 }

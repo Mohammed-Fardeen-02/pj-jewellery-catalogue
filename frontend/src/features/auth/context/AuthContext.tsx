@@ -91,6 +91,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const logout = React.useCallback(() => {
+    setTokens(null);
+    setUser(null);
+    if (typeof window !== "undefined") {
+      localStorage.removeItem(STORAGE_KEY_TOKENS);
+      localStorage.removeItem(STORAGE_KEY_USER);
+    }
+  }, []);
+
   const refreshToken = React.useCallback(async (): Promise<AuthTokens | null> => {
     if (!tokens?.refresh_token) return null;
     try {
@@ -102,16 +111,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       logout();
       return null;
     }
-  }, [tokens]);
-
-  const logout = React.useCallback(() => {
-    setTokens(null);
-    setUser(null);
-    if (typeof window !== "undefined") {
-      localStorage.removeItem(STORAGE_KEY_TOKENS);
-      localStorage.removeItem(STORAGE_KEY_USER);
-    }
-  }, []);
+  }, [tokens, logout]);
 
   const value = React.useMemo<AuthContextValue>(
     () => ({

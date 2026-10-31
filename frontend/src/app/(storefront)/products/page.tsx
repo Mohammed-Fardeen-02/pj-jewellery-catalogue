@@ -11,6 +11,8 @@ import type { ProductPublicResponse } from "@/features/products/types/product.ty
 import type { CategoryPublicResponse } from "@/features/categories/types/category.types";
 
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Atelier Catalogue — PJ Fine Jewellery",
   description: "Browse the authentic PJ Jewellery catalogue of master-crafted rings, necklaces, earrings, and bracelets.",

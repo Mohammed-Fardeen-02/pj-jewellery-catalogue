@@ -301,9 +301,9 @@ export default function AdminProductsPage() {
               />
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-[#FAF8F4] border-b border-[#E8E1D8] text-[11px] uppercase tracking-wider text-[#716B64]">
+            <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-320px)] border-t border-[#E8E1D8]">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead className="sticky top-0 z-10 bg-[#FAF8F4] border-b border-[#E8E1D8] text-[11px] uppercase tracking-wider text-[#716B64] shadow-2xs">
                   <tr>
                     <th className="py-3 px-6 font-semibold">Media</th>
                     <th className="py-3 px-6 font-semibold">SKU Identifier</th>

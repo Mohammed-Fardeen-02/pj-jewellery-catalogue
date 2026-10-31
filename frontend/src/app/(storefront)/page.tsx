@@ -11,6 +11,8 @@ import type { CategoryPublicResponse } from "@/features/categories/types/categor
 import type { ProductPublicResponse } from "@/features/products/types/product.types";
 
 
+export const dynamic = "force-dynamic";
+
 export default async function StorefrontHomePage() {
   let products: ProductPublicResponse[] = [];
   let categories: CategoryPublicResponse[] = [];
