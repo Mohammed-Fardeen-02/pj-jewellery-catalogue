@@ -8,6 +8,7 @@ import {
   CreditCard,
   DollarSign,
   Eye,
+  FileText,
   Filter,
   Loader2,
   Package,
@@ -16,6 +17,7 @@ import {
   Search,
   ShoppingBag,
   Sparkles,
+  Tag,
 } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
@@ -29,6 +31,8 @@ import { useAuth } from "@/features/auth";
 import {
   ordersApi,
   OrderDetailModal,
+  OrderShippingLabelModal,
+  OrderTaxInvoiceModal,
   type Order,
   type OrderStatusFilter,
 } from "@/features/orders";
@@ -49,6 +53,8 @@ export default function AdminOrdersPage() {
 
   // Modal state
   const [selectedOrder, setSelectedOrder] = React.useState<Order | null>(null);
+  const [shippingLabelOrder, setShippingLabelOrder] = React.useState<Order | null>(null);
+  const [taxInvoiceOrder, setTaxInvoiceOrder] = React.useState<Order | null>(null);
 
   const fetchOrders = React.useCallback(async () => {
     setError(null);
@@ -325,15 +331,40 @@ export default function AdminOrdersPage() {
 
                       {/* Action */}
                       <td className="py-4 px-6 text-right">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setSelectedOrder(order)}
-                          className="h-8 gap-1.5 text-xs text-[#24211E] border-[#D4C9BA] hover:bg-[#FAF8F4]"
-                        >
-                          <Eye className="w-3.5 h-3.5 text-[#B08D57]" />
-                          Inspect
-                        </Button>
+                        <div className="flex items-center justify-end gap-1.5">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setSelectedOrder(order)}
+                            className="h-8 gap-1 text-xs text-[#24211E] border-[#D4C9BA] hover:bg-[#FAF8F4]"
+                            title="Inspect Order Details"
+                          >
+                            <Eye className="w-3.5 h-3.5 text-[#B08D57]" />
+                            <span>Inspect</span>
+                          </Button>
+
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setShippingLabelOrder(order)}
+                            className="h-8 gap-1 text-xs text-[#24211E] border-[#D4C9BA] hover:bg-[#FAF8F4]"
+                            title="Print Shipping Label with QR Code"
+                          >
+                            <Tag className="w-3.5 h-3.5 text-[#B08D57]" />
+                            <span>Label</span>
+                          </Button>
+
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setTaxInvoiceOrder(order)}
+                            className="h-8 gap-1 text-xs text-[#24211E] border-[#D4C9BA] hover:bg-[#FAF8F4]"
+                            title="View & Print Official Tax Invoice"
+                          >
+                            <FileText className="w-3.5 h-3.5 text-[#B08D57]" />
+                            <span>Invoice</span>
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -361,6 +392,22 @@ export default function AdminOrdersPage() {
         order={selectedOrder}
         isOpen={!!selectedOrder}
         onClose={() => setSelectedOrder(null)}
+        onOpenShippingLabel={(o) => setShippingLabelOrder(o)}
+        onOpenTaxInvoice={(o) => setTaxInvoiceOrder(o)}
+      />
+
+      {/* Shipping Label Modal */}
+      <OrderShippingLabelModal
+        order={shippingLabelOrder}
+        isOpen={!!shippingLabelOrder}
+        onClose={() => setShippingLabelOrder(null)}
+      />
+
+      {/* Tax Invoice Modal */}
+      <OrderTaxInvoiceModal
+        order={taxInvoiceOrder}
+        isOpen={!!taxInvoiceOrder}
+        onClose={() => setTaxInvoiceOrder(null)}
       />
     </div>
   );

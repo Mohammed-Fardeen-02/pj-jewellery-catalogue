@@ -1,6 +1,7 @@
 import { apiClient } from "@/lib/api/client";
 import { ENDPOINTS } from "@/lib/api/endpoints";
 import type { Order, OrderCreatePayload } from "@/types";
+import type { OrderInvoiceResponse } from "../types/order.types";
 
 export interface OrderListResponse {
   items: Order[];
@@ -31,5 +32,10 @@ export const ordersApi = {
 
   async getOrderById(id: string, token?: string): Promise<Order> {
     return apiClient.get<Order>(ENDPOINTS.admin.orderDetail(id), { token });
+  },
+
+  // Admin Tax Invoice Generation
+  async getOrderInvoice(id: string, token?: string): Promise<OrderInvoiceResponse> {
+    return apiClient.get<OrderInvoiceResponse>(ENDPOINTS.admin.orderInvoice(id), { token });
   },
 };

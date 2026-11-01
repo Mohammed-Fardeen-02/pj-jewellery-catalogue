@@ -8,6 +8,7 @@ from app.dependencies.database import get_db
 from app.models.user import User
 from app.modules.orders.schemas import (
     OrderCreatePublic,
+    OrderInvoiceResponse,
     OrderListResponse,
     OrderResponse,
 )
@@ -71,3 +72,18 @@ async def get_order_detail(
     """Retrieve full customer order and line items."""
     service = OrderService(db)
     return await service.get_order_by_id(order_id)
+
+
+@admin_router.get(
+    "/{order_id}/invoice",
+    response_model=OrderInvoiceResponse,
+    summary="Get official tax invoice for order",
+)
+async def get_order_invoice(
+    order_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    _user: User = Depends(get_current_active_admin),
+) -> OrderInvoiceResponse:
+    """Retrieve legally formatted tax invoice with HSN and GST/VAT breakdown."""
+    service = OrderService(db)
+    return await service.get_order_invoice(order_id)

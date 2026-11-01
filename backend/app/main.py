@@ -141,7 +141,23 @@ def create_application() -> FastAPI:
             },
         )
 
-    # 4. Root Health Probe
+    # 4. Root & Health Probes
+    @app.get(
+        "/",
+        tags=["Health"],
+        summary="API Root Health & Service Discovery",
+        description="Public root probe providing service status and metadata.",
+    )
+    async def root_probe():
+        return {
+            "status": "healthy",
+            "service": settings.APP_NAME,
+            "version": "0.1.0",
+            "environment": settings.APP_ENV,
+            "docs_url": "/docs" if not settings.is_production else None,
+            "api_prefix": settings.API_V1_PREFIX,
+        }
+
     @app.get(
         "/health",
         tags=["Health"],

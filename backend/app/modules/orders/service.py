@@ -10,6 +10,8 @@ from app.core.exceptions import BadRequestException, NotFoundException
 from app.modules.orders.models import Order, OrderItem, OrderStatus, PaymentStatus
 from app.modules.orders.schemas import (
     OrderCreatePublic,
+    OrderInvoiceItem,
+    OrderInvoiceResponse,
     OrderItemResponse,
     OrderListResponse,
     OrderResponse,
@@ -230,3 +232,124 @@ class OrderService:
         if not order:
             raise NotFoundException(f"Order with ID '{order_id}' not found")
         return self._serialize_order(order)
+
+    async def get_order_invoice(self, order_id: uuid.UUID) -> OrderInvoiceResponse:
+        """Generate and retrieve legally compliant formal tax invoice."""
+        stmt = (
+            select(Order)
+            .options(selectinload(Order.items))
+            .where(Order.id == order_id)
+        )
+        res = await self.db.execute(stmt)
+        order = res.scalars().first()
+        if not order:
+            raise NotFoundException(f"Order with ID '{order_id}' not found")
+
+        # Format deterministic Tax Invoice Reference
+        date_str = order.created_at.strftime("%Y%m")
+        suffix = order.order_number.replace("ORD-", "").replace("-", "")[:6]
+        invoice_number = f"INV-PJ-{date_str}-{suffix}"
+
+        subtotal = float(order.subtotal)
+        discount = float(order.discount_amount)
+        taxable_amount = max(0.0, subtotal - discount)
+
+        # 3% standard luxury precious jewellery tax (1.5% CGST + 1.5% SGST)
+        cgst_amount = round(taxable_amount * 0.015, 2)
+        sgst_amount = round(taxable_amount * 0.015, 2)
+        total_tax = round(cgst_amount + sgst_amount, 2)
+
+        invoice_items: list[OrderInvoiceItem] = []
+        for item in order.items:
+            item_price = float(item.unit_price)
+            item_qty = item.quantity
+            item_taxable = round(item_price * item_qty, 2)
+            item_cgst = round(item_taxable * 0.015, 2)
+            item_sgst = round(item_taxable * 0.015, 2)
+            item_total = round(item_taxable + item_cgst + item_sgst, 2)
+
+            invoice_items.append(
+                OrderInvoiceItem(
+                    id=item.id,
+                    product_id=item.product_id,
+                    product_title=item.product_title,
+                    product_sku=item.product_sku,
+                    hsn_code="7113",
+                    unit_price=item_price,
+                    quantity=item_qty,
+                    taxable_value=item_taxable,
+                    cgst_rate=1.5,
+                    cgst_amount=item_cgst,
+                    sgst_rate=1.5,
+                    sgst_amount=item_sgst,
+                    total_price=item_total,
+                    image_url=item.image_url,
+                )
+            )
+
+        # Convert final total to words
+        amount_words = self._amount_to_words(float(order.total_amount))
+
+        return OrderInvoiceResponse(
+            invoice_number=invoice_number,
+            invoice_date=datetime.now(timezone.utc),
+            order_id=order.id,
+            order_number=order.order_number,
+            order_date=order.created_at,
+            customer_name=order.customer_name,
+            customer_email=order.customer_email,
+            customer_phone=order.customer_phone,
+            billing_address=order.shipping_address,
+            shipping_address=order.shipping_address,
+            payment_method=order.payment_method,
+            payment_status=order.payment_status,
+            payment_reference=order.payment_reference,
+            subtotal=subtotal,
+            discount_amount=discount,
+            taxable_amount=taxable_amount,
+            cgst_rate=1.5,
+            cgst_amount=cgst_amount,
+            sgst_rate=1.5,
+            sgst_amount=sgst_amount,
+            total_tax_amount=total_tax,
+            shipping_and_insurance=0.0,
+            total_amount=float(order.total_amount),
+            amount_in_words=amount_words,
+            items=invoice_items,
+        )
+
+    @staticmethod
+    def _amount_to_words(amount: float) -> str:
+        """Convert dollar amount to formal English representation."""
+        units = [
+            "", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine",
+            "Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen",
+            "Seventeen", "Eighteen", "Nineteen",
+        ]
+        tens = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"]
+
+        def _to_words(n: int) -> str:
+            if n == 0:
+                return ""
+            if n < 20:
+                return units[n] + " "
+            if n < 100:
+                return tens[n // 10] + (" " + units[n % 10] if n % 10 != 0 else "") + " "
+            if n < 1000:
+                return units[n // 100] + " Hundred " + _to_words(n % 100)
+            if n < 1000000:
+                return _to_words(n // 1000) + "Thousand " + _to_words(n % 1000)
+            return _to_words(n // 1000000) + "Million " + _to_words(n % 1000000)
+
+        dollars = int(amount)
+        cents = int(round((amount - dollars) * 100))
+
+        if dollars == 0:
+            words = "Zero US Dollars"
+        else:
+            words = _to_words(dollars).strip() + " US Dollars"
+
+        if cents > 0:
+            words += f" and {_to_words(cents).strip()} Cents"
+
+        return words + " Only"

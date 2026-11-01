@@ -41,6 +41,7 @@ export const ENDPOINTS = {
     stockOverview: `${API_V1_PREFIX}/admin/stock/overview`,
     orders: `${API_V1_PREFIX}/admin/orders`,
     orderDetail: (id: string) => `${API_V1_PREFIX}/admin/orders/${id}`,
+    orderInvoice: (id: string) => `${API_V1_PREFIX}/admin/orders/${id}/invoice`,
     analyticsDashboard: (range: string = "30d") => `${API_V1_PREFIX}/admin/analytics/dashboard?range=${range}`,
     aiSuggest: `${API_V1_PREFIX}/admin/ai/suggest-product`,
   },
